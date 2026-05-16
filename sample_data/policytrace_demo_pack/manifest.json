@@ -1,0 +1,13 @@
+{
+  "purpose": "Synthetic demo data for AI Tool Stack PolicyTrace.",
+  "warning": "No real customer, insurer, vehicle, or policy data is included.",
+  "files": [
+    "Schedule of Insurance - Demo.pdf",
+    "Certificate of Motor Insurance - Demo.pdf",
+    "Statement of Fact - Demo.pdf",
+    "Policy Booklet - Demo.pdf"
+  ],
+  "expected_policy_number": "NBM-DEMO-0427",
+  "expected_vrm": "ZX24 DEM",
+  "expected_insurer": "Northbridge Mutual Motor Insurance Ltd"
+}

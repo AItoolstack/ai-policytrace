@@ -1,0 +1,44 @@
+# Secrets and local environment
+.env
+.env.*
+!.env.example
+
+# Python
+__pycache__/
+*.py[cod]
+*.pyo
+.pytest_cache/
+.ruff_cache/
+.mypy_cache/
+.coverage
+htmlcov/
+motor_policy_venv/
+.venv/
+venv/
+
+# Node / Vite
+ui/node_modules/
+ui/dist/
+ui/.vite/
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+
+# Generated runtime output
+output/
+src/output/
+*.log
+
+# Private source documents
+docs/*.pdf
+
+# OS / editor noise
+.DS_Store
+Thumbs.db
+.vscode/*
+!.vscode/extensions.json
+!.vscode/settings.json.example
+
+# Large model/cache artifacts
+.cache/
+models/

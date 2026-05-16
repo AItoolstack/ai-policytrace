@@ -1,0 +1,73 @@
+# settings.yaml — Runtime tuneables for the UK Motor Insurance IDP pipeline.
+#
+# HOW TO USE
+# ──────────
+# • Edit values here to tune behaviour without touching Python code.
+# • Environment variables take priority over values in this file:
+#     GROQ_API_KEY  — (required) your Groq API secret key
+#     GROQ_MODEL    — overrides llm.model below (set in .env or shell)
+# • Restart the pipeline after editing this file.
+
+llm:
+  # Model served by Groq. Override at runtime via GROQ_MODEL env var.
+  model: "meta-llama/llama-4-scout-17b-16e-instruct"
+  # Fast model for document classification. Override via GROQ_CLASSIFIER_MODEL env var.
+  classifier_model: "llama-3.1-8b-instant"
+  # Number of instructor self-correction retries on Pydantic validation failure.
+  max_retries: 2
+
+pii:
+  # Minimum Presidio confidence score (0.0–1.0) to trigger redaction.
+  score_threshold: 0.5
+  # Set to true to also redact DATE_TIME entities (breaks date extraction — use carefully).
+  mask_dates: false
+  # spaCy language code used by the Presidio NLP engine.
+  language: "en"
+  # Presidio entity types to redact before sending text to the LLM.
+  entities:
+    - PERSON
+    - PHONE_NUMBER
+    - EMAIL_ADDRESS
+    - UK_NHS
+    - UK_NIN          # National Insurance Number
+    - CREDIT_CARD
+    - IBAN_CODE
+    - LOCATION        # postcodes / addresses
+    - IP_ADDRESS
+    - URL
+
+pipeline:
+  # Default output path for the Golden Record JSON.
+  output_path: "../output/golden_record.json"
+  # Default logging verbosity: DEBUG | INFO | WARNING | ERROR
+  log_level: "INFO"
+  # Session directories older than this many days are deleted on API startup. 0 = disabled.
+  session_ttl_days: 30
+
+debug:
+  # Master switch — set to false to skip all debug artifact writing.
+  enabled: true
+  # Root folder for debug runs. Each execution creates a timestamped sub-folder.
+  output_dir: "./output/debug"
+  # Save the raw Markdown produced by docling for each PDF.
+  save_markdown: true
+  # Save the PII-masked Markdown that is actually sent to the LLM.
+  save_masked_markdown: true
+  # Save the raw UKMotorPolicy JSON extracted from each document.
+  save_extraction_json: true
+  # Append a JSONL line per document: prompt size, response time, fields populated.
+  save_metrics: true
+
+docling:
+  # Disable OCR — UK insurance PDFs are text-based; OCR doubles memory usage per page.
+  do_ocr: false
+  # Disable deep table-structure recognition to reduce memory pressure on large PDFs.
+  do_table_structure: false
+  # Maximum pages to process per document type. null = no limit.
+  # Policy Booklet is the lowest-priority document (57+ pages) — cap it to save memory.
+  max_pages:
+    Schedule: null
+    Certificate: null
+    StatementOfFact: null
+    PolicyBooklet: 20
+    Unknown: 30

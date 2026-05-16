@@ -1,0 +1,17 @@
+<svg width="600" height="72" viewBox="0 0 600 72" xmlns="http://www.w3.org/2000/svg" aria-labelledby="title">
+<title>AI Tool Stack</title>
+<rect width="600" height="72" fill="none"></rect>
+<g transform="translate(6 4) scale(0.075)">
+  <path d="M214 670L512 548L810 670L512 792L214 670Z" fill="#1F2937"></path>
+  <path d="M214 570L512 448L810 570L512 692L214 570Z" fill="#2563EB"></path>
+  <path d="M214 470L512 348L810 470L512 592L214 470Z" fill="#008080"></path>
+  <path d="M338 278L512 196L686 278" stroke="#1F2937" stroke-width="34" stroke-linecap="round" stroke-linejoin="round"></path>
+  <path d="M338 278L512 376L686 278" stroke="#1F2937" stroke-width="34" stroke-linecap="round" stroke-linejoin="round"></path>
+  <path d="M512 376L686 278" stroke="#2563EB" stroke-width="22" stroke-linecap="round"></path>
+  <circle cx="512" cy="196" r="62" fill="#1F2937"></circle>
+  <circle cx="338" cy="278" r="62" fill="#008080"></circle>
+  <circle cx="686" cy="278" r="62" fill="#2563EB"></circle>
+  <circle cx="512" cy="376" r="70" fill="#1F2937"></circle>
+</g>
+<text x="86" y="49" font-family="Inter, Manrope, Arial, Helvetica, sans-serif" font-size="42" font-weight="800" letter-spacing="-0.7" fill="#1F2937">AI Tool Stack</text>
+</svg>
