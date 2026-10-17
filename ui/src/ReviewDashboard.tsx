@@ -66,9 +66,9 @@ export function ReviewDashboard({ sessionId }: Props) {
 }
 
 const TONES = {
-  pass: 'text-[#6FCF97]',
-  override: 'text-[#A9B8E0]',
-  flag: 'text-[#F2A35E]',
+  pass: 'text-state-pass',
+  override: 'text-state-override',
+  flag: 'text-state-flag',
 } as const
 
 function Stat({ label, value, tone }: { label: string; value: number | string; tone?: keyof typeof TONES }) {

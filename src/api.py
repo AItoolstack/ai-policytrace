@@ -259,8 +259,8 @@ async def process_documents(files: list[UploadFile] = File(...)):
 
     Returns a ``session_id`` which the UI uses for all subsequent requests.
 
-    Note: This endpoint is synchronous and may take 30–90 seconds depending
-    on Groq API response times.
+    Note: This endpoint is synchronous. A full four-PDF pack takes about two
+    to three minutes on Groq's free tier, mostly waiting on rate limits.
     """
     if not files:
         raise HTTPException(status_code=400, detail="No files uploaded.")

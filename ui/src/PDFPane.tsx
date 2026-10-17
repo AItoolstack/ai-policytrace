@@ -111,11 +111,11 @@ export function PDFPane({ sessionId }: Props) {
               aria-selected={on}
               onClick={() => setActivePdf(f)}
               className={`relative shrink-0 inline-flex items-center gap-2 h-9 px-3 rounded-md text-[13px] transition-colors ${
-                on ? 'bg-ink-700 text-ink-100' : 'text-ink-300 hover:text-ink-100 hover:bg-ink-700/60'
+                on ? 'bg-white text-ink-100 shadow-sheet' : 'text-ink-300 hover:text-ink-100 hover:bg-white/70'
               }`}
             >
               <span className="truncate max-w-[14rem]">{f.replace(/\.pdf$/i, '').replace(/ - Demo$/i, '')}</span>
-              <span className={`font-mono text-[11px] ${on ? 'text-signal' : 'text-ink-400'}`}>{count}</span>
+              <span className={`font-mono text-[11px] ${on ? 'text-signal-deep' : 'text-ink-400'}`}>{count}</span>
               {on && <span className="absolute left-3 right-3 -bottom-[9px] h-[2px] bg-signal rounded-full" aria-hidden="true" />}
             </button>
           )
@@ -125,7 +125,7 @@ export function PDFPane({ sessionId }: Props) {
       {/* PDF scroll area */}
       <div
         ref={containerRef}
-        className="flex-1 overflow-y-auto pdf-scroll-container scroll-ink grid-bg bg-ink-900 p-4 sm:p-6 space-y-6"
+        className="flex-1 overflow-y-auto pdf-scroll-container scroll-ink wash p-4 sm:p-6 space-y-6"
       >
         {pdfUrl ? (
           <Document
@@ -156,7 +156,7 @@ export function PDFPane({ sessionId }: Props) {
                   // the canvas dimensions exactly (inline-block can shrink-wrap)
                   style={{ position: 'relative', width: containerWidth }}
                   className={`rounded-sm overflow-hidden transition-shadow ${
-                    hasActive ? 'ring-2 ring-signal ring-offset-4 ring-offset-ink-900' : ''
+                    hasActive ? 'ring-2 ring-signal ring-offset-4 ring-offset-[#F3F2EF]' : ''
                   }`}
                 >
                   <Page
@@ -225,7 +225,7 @@ function LoadingPlaceholder() {
 
 function ErrorPlaceholder() {
   return (
-    <div className="flex items-center justify-center p-12 text-[#F2A35E] text-sm font-mono">
+    <div className="flex items-center justify-center p-12 text-state-flag text-sm font-mono">
       Failed to load PDF.
     </div>
   )

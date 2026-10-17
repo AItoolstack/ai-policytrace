@@ -1,16 +1,17 @@
 /** ai·toolstack brand primitives shared by every PolicyTrace screen. */
 
 export function Mark({ size = 24 }: { size?: number }) {
+  // Three layers of a system; the middle one ends in an amber dot: a value traced to its source.
   return (
-    <svg width={size} height={size} viewBox="0 0 56 56" aria-hidden="true" focusable="false">
-      <rect x="0.5" y="0.5" width="55" height="55" rx="12" fill="#1F2940" stroke="#2C3752" />
-      <rect x="12" y="14" width="32" height="6" rx="2" fill="#E0A946" />
-      <rect x="16" y="25" width="28" height="6" rx="2" fill="#ECEAE4" />
-      <rect x="12" y="36" width="32" height="6" rx="2" fill="#56617A" />
+    <svg width={size} height={size} viewBox="0 0 32 32" aria-hidden="true" focusable="false">
+      <rect width="32" height="32" rx="7" fill="#1F2940" />
+      <rect x="7" y="7.5" width="18" height="3" rx="1.5" fill="#8A93A8" />
+      <rect x="7" y="14.5" width="11" height="3" rx="1.5" fill="#F6F5F1" />
+      <circle cx="23.5" cy="16" r="2.4" fill="#E0A946" />
+      <rect x="7" y="21.5" width="18" height="3" rx="1.5" fill="#8A93A8" />
     </svg>
   )
 }
-
 export function Lockup({ product = 'PolicyTrace' }: { product?: string }) {
   return (
     <div className="flex items-center gap-3 min-w-0">
@@ -21,9 +22,9 @@ export function Lockup({ product = 'PolicyTrace' }: { product?: string }) {
         className="flex items-center gap-2.5 text-ink-100"
         aria-label="ai·toolstack home"
       >
-        <Mark size={26} />
-        <span className="text-[17px] font-semibold tracking-[-0.035em] hidden sm:inline">
-          <span className="font-mono font-medium text-ink-300">ai·</span>toolstack
+        <Mark size={24} />
+        <span className="text-[17px] font-semibold tracking-[-0.02em] hidden sm:inline">
+          ai<span className="text-signal-deep">·</span>toolstack
         </span>
       </a>
       <span className="text-ink-600 select-none hidden sm:inline" aria-hidden="true">/</span>

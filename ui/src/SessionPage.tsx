@@ -46,7 +46,7 @@ export function SessionPage() {
     return (
       <div className="min-h-screen flex items-center justify-center bg-ink grid-bg">
         <div className="text-center space-y-3">
-          <svg className="animate-spin h-8 w-8 mx-auto text-signal" viewBox="0 0 24 24" fill="none">
+          <svg className="animate-spin h-8 w-8 mx-auto text-signal-deep" viewBox="0 0 24 24" fill="none">
             <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
             <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v8z" />
           </svg>
@@ -60,12 +60,12 @@ export function SessionPage() {
     return (
       <div className="min-h-screen flex items-center justify-center bg-ink grid-bg">
         <div className="text-center space-y-4 max-w-sm">
-          <p role="alert" className="text-sm text-[#F2B79A] bg-state-flag/10 border border-state-flag/40 rounded-xl px-4 py-3">
+          <p role="alert" className="text-sm text-state-flag bg-state-flag-tint border border-state-flag/40 rounded-xl px-4 py-3">
             {error}
           </p>
           <button
             onClick={() => navigate('/')}
-            className="text-sm font-medium text-signal hover:text-signal-hover"
+            className="text-sm font-medium text-signal-deep hover:text-ink-100"
           >
             ← Back to upload
           </button>

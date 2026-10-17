@@ -32,7 +32,7 @@ pii:
     - UK_NIN          # National Insurance Number
     - CREDIT_CARD
     - IBAN_CODE
-    - LOCATION        # postcodes / addresses
+    - LOCATION        # place names only; UK postcodes are NOT caught
     - IP_ADDRESS
     - URL
 
@@ -50,7 +50,9 @@ debug:
   # When on, the API writes artifacts inside the session folder, so they are
   # removed with the session (DELETE /api/session/{id} or the TTL cleanup).
   enabled: false
-  # Root folder for debug runs. Each execution creates a timestamped sub-folder.
+  # Used only by the command-line runner (src/main.py): root folder for its debug
+  # runs, one timestamped sub-folder each. The API ignores it and writes debug
+  # output inside the session folder instead.
   output_dir: "./output/debug"
   # Save the raw Markdown produced by docling for each PDF.
   save_markdown: true

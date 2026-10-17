@@ -1,5 +1,5 @@
 /** @type {import('tailwindcss').Config} */
-// ai·toolstack design tokens (mirrors the ai-toolstack.com theme)
+// ai·toolstack design tokens (mirrors the ai-toolstack.com light theme)
 export default {
   content: [
     "./index.html",
@@ -9,16 +9,18 @@ export default {
     extend: {
       colors: {
         ink: {
-          DEFAULT: '#121826', // midnight slate ground
-          900: '#121826',
-          800: '#182033',     // surface
-          700: '#1F2940',     // raised
-          600: '#2C3752',     // rule
-          500: '#3A4766',
-          400: '#7E88A2',     // dim text (AA on ink)
-          300: '#9CA6BA',     // muted text
-          200: '#CDD3DE',     // body text on ink
-          100: '#ECEAE4',     // bone
+          // Light scheme matching ai-toolstack.com 2.5. Names kept so classes still read
+          // "ground → surface → raised → rule → text"; values run light to dark.
+          DEFAULT: '#FFFFFF', // page ground
+          900: '#FFFFFF',
+          800: '#FAFAF8',     // surface (bars, cards)
+          700: '#ECEAE5',     // raised / rule
+          600: '#E2E0DA',     // stronger rule
+          500: '#D9D6CF',
+          400: '#7A8190',     // dim text
+          300: '#5B6270',     // muted text
+          200: '#4A5160',     // body text
+          100: '#1A1D24',     // ink
         },
         paper: {
           DEFAULT: '#F6F5F1',
@@ -48,7 +50,7 @@ export default {
       },
       boxShadow: {
         sheet: '0 1px 0 rgba(18,24,38,0.04), 0 8px 24px -16px rgba(18,24,38,0.25)',
-        page: '0 24px 60px -30px rgba(0,0,0,0.65)',
+        page: '0 1px 2px rgba(26,29,36,0.06), 0 12px 32px -18px rgba(26,29,36,0.28)',
       },
     },
   },
