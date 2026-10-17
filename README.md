@@ -1,6 +1,6 @@
 # PolicyTrace
 
-![PolicyTrace review dashboard](docs/assets/policytrace-review.png)
+![PolicyTrace review screen: source PDF on the left, Golden Record with citations on the right](docs/assets/policytrace-review.webp)
 
 **PolicyTrace is a Document AI workflow for UK motor insurance PDFs.** It extracts a structured Golden Record, resolves fields across multiple policy documents, and gives reviewers source-level evidence inside a split-screen PDF audit UI.
 
@@ -36,11 +36,11 @@ The repo includes a fully synthetic demo pack, safe for public screenshots and d
 sample_data/policytrace_demo_pack/
 ```
 
-![PolicyTrace upload screen](docs/assets/policytrace-upload.png)
+![PolicyTrace upload screen with the demo pack loaded](docs/assets/policytrace-upload.webp)
 
 Upload the demo PDFs, then inspect and verify extracted fields:
 
-![PolicyTrace field highlight demo](docs/assets/policytrace-field-highlight.gif)
+![Reviewing fields: verified, overridden and flagged states](docs/assets/policytrace-review-states.webp)
 
 ## What It Does
 
