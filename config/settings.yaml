@@ -10,9 +10,9 @@
 
 llm:
   # Model served by Groq. Override at runtime via GROQ_MODEL env var.
-  model: "meta-llama/llama-4-scout-17b-16e-instruct"
+  model: "openai/gpt-oss-120b"  # llama-4-scout was retired by Groq on 2026-07-17
   # Fast model for document classification. Override via GROQ_CLASSIFIER_MODEL env var.
-  classifier_model: "llama-3.1-8b-instant"
+  classifier_model: "openai/gpt-oss-20b"  # llama-3.1-8b-instant retired 2026-08-16
   # Number of instructor self-correction retries on Pydantic validation failure.
   max_retries: 2
 

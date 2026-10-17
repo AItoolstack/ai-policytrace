@@ -63,6 +63,17 @@ _EXTRACTION_MODEL: str = settings.llm.model
 _CLASSIFIER_MODEL: str = settings.llm.classifier_model
 
 
+def _reasoning_kwargs(model: str, max_tokens: int) -> dict:
+    """Extra Groq params for reasoning models (gpt-oss), which spend output tokens thinking.
+
+    Without a larger budget and low reasoning effort they truncate structured output
+    ("output is incomplete due to max_tokens") or return an empty classification.
+    """
+    if "gpt-oss" in model:
+        return {"max_tokens": max_tokens, "reasoning_effort": "low"}
+    return {}
+
+
 def _build_docling_converter() -> DocumentConverter:
     """Build a DocumentConverter configured from settings.docling."""
     opts = PdfPipelineOptions()
@@ -231,10 +242,11 @@ class InsuranceExtractionAgents:
                         "content": "Classify this document:\n\n" + markdown_text[:4000],
                     },
                 ],
-                max_tokens=10,
                 temperature=0,
+                **({"max_tokens": 10} | _reasoning_kwargs(_CLASSIFIER_MODEL, 256)),
             )
-            llm_result = response.choices[0].message.content.strip().split()[0]
+            content = (response.choices[0].message.content or "").strip()
+            llm_result = content.split()[0].strip(".,") if content else ""
             valid = {"Schedule", "Certificate", "StatementOfFact", "PolicyBooklet", "Unknown"}
             if llm_result in valid:
                 if llm_result != keyword_result:
@@ -494,6 +506,7 @@ class InsuranceExtractionAgents:
                 model=_EXTRACTION_MODEL,
                 response_model=UKMotorGoldenRecord,
                 max_retries=self._max_retries,
+                **_reasoning_kwargs(_EXTRACTION_MODEL, 4096),
                 messages=[
                     {"role": "system", "content": system_prompt.strip()},
                     {"role": "user", "content": user_message},
