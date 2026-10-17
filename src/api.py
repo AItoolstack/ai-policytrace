@@ -4,6 +4,8 @@ api.py — FastAPI server for the UK Motor Insurance Visual Audit Review UI.
 Endpoints
 ─────────
   GET  /api/health
+  GET  /api/samples                  - list bundled synthetic demo PDFs
+  GET  /api/samples/{file}           - download a bundled synthetic demo PDF
   POST /api/process                   — upload PDFs, run pipeline, return session_id
   GET  /api/session/{id}              — full GoldenRecordWithProvenance JSON
   GET  /api/pdf/{session_id}/{file}   — serve source PDF (path-traversal safe)
@@ -26,6 +28,7 @@ import uuid
 from datetime import datetime
 from pathlib import Path
 from typing import Optional
+from urllib.parse import quote
 
 # ── Ensure src/ is on sys.path so sibling modules resolve regardless of CWD ─
 sys.path.insert(0, str(Path(__file__).parent))
@@ -57,6 +60,7 @@ _SESSION_DIR = Path(__file__).parent.parent / "output" / "sessions"
 _SESSION_DIR.mkdir(parents=True, exist_ok=True)
 
 _STATIC_DIR = Path(__file__).parent.parent / "ui" / "dist"
+_SAMPLE_PACK_DIR = Path(__file__).parent.parent / "sample_data" / "policytrace_demo_pack"
 
 # ---------------------------------------------------------------------------
 # App
@@ -134,6 +138,33 @@ def _count_leaves(obj: object) -> int:
     return 1
 
 
+def _sample_pdf_paths() -> list[Path]:
+    """Return demo PDFs in manifest order, falling back to alphabetical order."""
+    if not _SAMPLE_PACK_DIR.exists():
+        return []
+
+    pdfs_by_name = {
+        path.name: path
+        for path in sorted(_SAMPLE_PACK_DIR.glob("*.pdf"), key=lambda p: p.name.lower())
+    }
+    manifest_file = _SAMPLE_PACK_DIR / "manifest.json"
+    if not manifest_file.exists():
+        return list(pdfs_by_name.values())
+
+    try:
+        manifest = json.loads(manifest_file.read_text(encoding="utf-8"))
+    except json.JSONDecodeError:
+        return list(pdfs_by_name.values())
+
+    ordered: list[Path] = []
+    for filename in manifest.get("files", []):
+        path = pdfs_by_name.pop(Path(filename).name, None)
+        if path:
+            ordered.append(path)
+    ordered.extend(pdfs_by_name.values())
+    return ordered
+
+
 # ---------------------------------------------------------------------------
 # Endpoints
 # ---------------------------------------------------------------------------
@@ -142,6 +173,74 @@ def _count_leaves(obj: object) -> int:
 @app.get("/api/health")
 async def health():
     return {"status": "ok", "version": "1.0.0"}
+
+
+class SampleFileInfo(BaseModel):
+    filename: str
+    size_bytes: int
+    url: str
+
+
+class SamplePackResponse(BaseModel):
+    pack_name: str
+    description: str
+    warning: str
+    expected_policy_number: Optional[str] = None
+    expected_vrm: Optional[str] = None
+    files: list[SampleFileInfo]
+
+
+@app.get("/api/samples", response_model=SamplePackResponse)
+async def list_samples():
+    """Return the bundled synthetic PDFs that are safe for public demos."""
+    manifest: dict = {}
+    manifest_file = _SAMPLE_PACK_DIR / "manifest.json"
+    if manifest_file.exists():
+        try:
+            manifest = json.loads(manifest_file.read_text(encoding="utf-8"))
+        except json.JSONDecodeError:
+            logger.warning("Could not parse sample manifest at %s", manifest_file)
+
+    files = [
+        SampleFileInfo(
+            filename=path.name,
+            size_bytes=path.stat().st_size,
+            url=f"/api/samples/{quote(path.name)}",
+        )
+        for path in _sample_pdf_paths()
+    ]
+    return SamplePackResponse(
+        pack_name="PolicyTrace demo pack",
+        description=manifest.get(
+            "purpose",
+            "Synthetic demo data for AI Tool Stack PolicyTrace.",
+        ),
+        warning=manifest.get(
+            "warning",
+            "No real customer, insurer, vehicle, or policy data is included.",
+        ),
+        expected_policy_number=manifest.get("expected_policy_number"),
+        expected_vrm=manifest.get("expected_vrm"),
+        files=files,
+    )
+
+
+@app.get("/api/samples/{filename}")
+async def serve_sample_pdf(filename: str):
+    """Serve a bundled synthetic PDF from the public demo pack."""
+    safe_name = Path(filename).name
+    if not safe_name.lower().endswith(".pdf"):
+        raise HTTPException(status_code=400, detail="Only PDF files can be served.")
+
+    pdf_path = _SAMPLE_PACK_DIR / safe_name
+    if not pdf_path.exists() or not pdf_path.is_file():
+        raise HTTPException(status_code=404, detail=f"Sample PDF '{safe_name}' not found.")
+
+    return FileResponse(
+        str(pdf_path),
+        media_type="application/pdf",
+        headers={"Content-Disposition": f'inline; filename="{safe_name}"'},
+    )
 
 
 # ── POST /api/process ────────────────────────────────────────────────────────
