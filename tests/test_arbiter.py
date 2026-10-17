@@ -368,3 +368,24 @@ class TestLiveRunRegressions:
         for c in conflicts:
             expected = c.schedule_value if c.winner == "schedule" else c.certificate_value
             assert str(_value_at(golden, c.field)) == expected, c.field
+
+
+class TestMaskedDriverNames:
+    """Masked names differ by one character, so they must match exactly."""
+
+    def test_different_tokens_do_not_match(self):
+        sched = _make_schedule(drivers=[{"name": "MASKED_PERSON_4", "is_main_driver": False}])
+        cert = _make_certificate(
+            drivers=[{"name": "MASKED_PERSON_1", "is_main_driver": True, "relationship": "Proposer"}]
+        )
+        golden, conflicts = PolicyArbiter().merge_records(sched, "s.pdf", cert, "c.pdf")
+        assert golden.driver_details[0].relationship is None
+        assert not any("is_main_driver" in c.field for c in conflicts)
+
+    def test_same_token_matches(self):
+        sched = _make_schedule(drivers=[{"name": "MASKED_PERSON_2", "is_main_driver": True}])
+        cert = _make_certificate(
+            drivers=[{"name": "MASKED_PERSON_2", "is_main_driver": True, "relationship": "Proposer"}]
+        )
+        golden, _ = PolicyArbiter().merge_records(sched, "s.pdf", cert, "c.pdf")
+        assert golden.driver_details[0].relationship == "Proposer"

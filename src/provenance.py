@@ -43,6 +43,9 @@ _SKIP_LEAF_NAMES = {
 # they don't contain verbatim PDF values so matching against them is meaningless.
 _SKIP_SECTION_NAMES = {"source_document", "field_citations"}
 
+# Docling labels that mark headings rather than values.
+_HEADING_LABELS = {"title", "section_header", "page_header", "page_footer"}
+
 # Document types whose corpora are unreliable for field-level matching.
 # Policy Booklets contain generic boilerplate — matching against them produces
 # false positives for almost every field ("Full", "UK", date digits, etc.).
@@ -69,6 +72,7 @@ class CorpusItem:
     page: int
     bbox: list[float]       # [x0%, y0%, x1%, y1%] — top-left origin, 0–100
     source_filename: str
+    label: str = ""         # Docling item label, e.g. "text", "section_header"
 
 
 class ProvenanceCorpus:
@@ -118,7 +122,7 @@ class ProvenanceCorpus:
             if not text or len(text) < 2:
                 continue
             for prov in getattr(item, "prov", []):
-                self._add_prov_item(prov, text, filename, page_sizes)
+                self._add_prov_item(prov, text, filename, page_sizes, _item_label(item))
 
     def _add_prov_item(
         self,
@@ -126,6 +130,7 @@ class ProvenanceCorpus:
         text: str,
         filename: str,
         page_sizes: dict[int, tuple[float, float]],
+        label: str = "",
     ) -> None:
         page_no = getattr(prov, "page_no", None)
         if page_no is None:
@@ -155,6 +160,7 @@ class ProvenanceCorpus:
             page=page_no,
             bbox=[round(x0, 3), round(y0, 3), round(x1, 3), round(y1, 3)],
             source_filename=filename,
+            label=label,
         ))
 
     @staticmethod
@@ -206,6 +212,17 @@ def _item_text(item: Any) -> str:
         ]
         return " | ".join(c for c in cells if c)
     return ""
+
+
+def _item_label(item: Any) -> str:
+    """Docling item label as a plain string ("" when unavailable)."""
+    label = getattr(item, "label", "")
+    return str(getattr(label, "value", label) or "")
+
+
+def _norm(text: str) -> str:
+    """Lowercase and collapse whitespace for containment checks."""
+    return " ".join(str(text).split()).lower()
 
 
 def _clamp(v: float) -> float:
@@ -268,6 +285,7 @@ def build_provenance(
     # Track assigned positions to avoid two fields pointing to the same corpus item.
     # Key: (source_filename, page, x0, y0) — unpadded, original corpus position.
     used_positions: set[tuple] = set()
+    driver_values = _driver_values(record)
 
     for field_path, value_str in _walk_record(record):
         leaf = field_path.split(".")[-1].strip("[]0123456789")
@@ -291,10 +309,34 @@ def build_provenance(
         score_fn = rfuzz.partial_ratio if using_citation else rfuzz.WRatio
         threshold = _CITATION_THRESHOLD if using_citation else _MATCH_THRESHOLD
 
-        # Find best match, preferring positions not yet assigned to another field.
-        best_score = 0
+        # Rank candidates above the threshold by, in order:
+        #   1. does the item contain the extracted value (or its UK date form)?
+        #   2. is it ordinary text rather than a heading?
+        #   3. for driver fields, how many of the same driver's other values it
+        #      contains, so the field lands on that driver's row, not a label,
+        #      a section heading or another driver's row;
+        #   4. the fuzzy score.
+        # A short label inside the quote ("Name" in "Named Driver") can score as
+        # high as the real row, so the score alone is not enough.
+        value_norm = _norm(value_str)
+        uk_norm = _norm(_iso_to_uk_date(value_str) or "")
+        driver_idx = _driver_index(field_path)
+        sibling_values = [
+            v for v in driver_values.get(driver_idx, []) if v and v != value_norm
+        ] if driver_idx is not None else []
+
+        def rank(item: CorpusItem, score: float) -> tuple:
+            text_norm = _norm(item.text)
+            covers = (len(value_norm) >= _MIN_VALUE_LEN and value_norm in text_norm) or (
+                bool(uk_norm) and uk_norm in text_norm
+            )
+            not_heading = item.label not in _HEADING_LABELS
+            row_bonus = sum(1 for v in sibling_values if v in text_norm)
+            return (covers, not_heading, row_bonus, score)
+
+        best_key: tuple | None = None
         best_item: CorpusItem | None = None
-        best_unused_score = 0
+        best_unused_key: tuple | None = None
         best_unused_item: CorpusItem | None = None
 
         for corpus in trusted_corpora:
@@ -305,22 +347,24 @@ def build_provenance(
                     alt_score = rfuzz.partial_ratio(alt_search, item.text.lower())
                     if alt_score > score:
                         score = alt_score
+                if score < threshold:
+                    continue
+                key = rank(item, score)
                 pos_key = (item.source_filename, item.page, item.bbox[0], item.bbox[1])
-                if score > best_score:
-                    best_score = score
-                    best_item = item
-                if score > best_unused_score and pos_key not in used_positions:
-                    best_unused_score = score
-                    best_unused_item = item
+                # Strictly greater: on a full tie the first item in reading order wins.
+                if best_key is None or key > best_key:
+                    best_key, best_item = key, item
+                if pos_key not in used_positions and (best_unused_key is None or key > best_unused_key):
+                    best_unused_key, best_unused_item = key, item
 
-        # Prefer an unused position if it scores above threshold,
-        # otherwise fall back to best overall (may share a location).
-        if best_unused_item is not None and best_unused_score >= threshold:
-            chosen_item = best_unused_item
-            chosen_score = best_unused_score
-        elif best_item is not None and best_score >= threshold:
-            chosen_item = best_item
-            chosen_score = best_score
+        # Prefer an unused position, but only if it is as good on everything
+        # except the raw score. A driver's row is shared by several fields
+        # (date of birth, relationship, occupation), and an unused heading
+        # nearby must not win just because the row is already taken.
+        if best_unused_item is not None and best_unused_key[:3] >= best_key[:3]:
+            chosen_item, chosen_score = best_unused_item, best_unused_key[-1]
+        elif best_item is not None:
+            chosen_item, chosen_score = best_item, best_key[-1]
         else:
             continue
 
@@ -390,6 +434,34 @@ def _walk_list(lst: list, prefix: str) -> Iterator[tuple[str, str]]:
 def _count_total_fields(record: Any) -> int:
     data = record.model_dump(exclude_none=True)
     return sum(1 for _ in _walk_dict(data, ""))
+
+
+_DRIVER_PATH_RE = re.compile(r"^driver_details\[(\d+)\]\.")
+
+
+def _driver_index(field_path: str) -> int | None:
+    """Index of the driver a field belongs to, or None for non-driver fields."""
+    m = _DRIVER_PATH_RE.match(field_path)
+    return int(m.group(1)) if m else None
+
+
+def _driver_values(record: Any) -> dict[int, list[str]]:
+    """Normalised values per driver (UK date form for dates), used to keep a
+    driver's fields on that driver's row. Names and booleans are left out:
+    names are usually masked tokens and booleans match everywhere."""
+    out: dict[int, list[str]] = {}
+    for i, driver in enumerate(getattr(record, "driver_details", None) or []):
+        vals: list[str] = []
+        for key, val in driver.model_dump(exclude_none=True).items():
+            if key == "name" or isinstance(val, bool):
+                continue
+            text = str(val)
+            uk = _iso_to_uk_date(text)
+            norm = _norm(uk or text)
+            if len(norm) >= _MIN_VALUE_LEN:
+                vals.append(norm)
+        out[i] = vals
+    return out
 
 
 # ISO 8601 date/datetime patterns → UK DD/MM/YYYY

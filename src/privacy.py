@@ -21,7 +21,6 @@ from typing import Optional
 from presidio_analyzer import AnalyzerEngine, RecognizerResult
 from presidio_analyzer.nlp_engine import NlpEngineProvider
 from presidio_anonymizer import AnonymizerEngine
-from presidio_anonymizer.entities import OperatorConfig
 
 from settings import settings
 
@@ -79,22 +78,32 @@ class PIIMasker:
         self._language = language
         self._score_threshold = score_threshold
 
-        # Build NLP engine (spaCy en_core_web_lg preferred; falls back to sm)
+        # Build NLP engine: spaCy en_core_web_lg if it is installed, otherwise
+        # en_core_web_sm. Checking first matters: Presidio silently downloads a
+        # missing model (400 MB for lg) instead of raising, so a try/except
+        # fallback never triggers.
         nlp_config = {
             "nlp_engine_name": "spacy",
-            "models": [{"lang_code": "en", "model_name": "en_core_web_lg"}],
+            "models": [{"lang_code": "en", "model_name": _pick_spacy_model()}],
         }
-        try:
-            provider = NlpEngineProvider(nlp_configuration=nlp_config)
-            nlp_engine = provider.create_engine()
-        except OSError:
-            # Fall back to the small model if lg is not installed
-            nlp_config["models"][0]["model_name"] = "en_core_web_sm"
-            provider = NlpEngineProvider(nlp_configuration=nlp_config)
-            nlp_engine = provider.create_engine()
+        provider = NlpEngineProvider(nlp_configuration=nlp_config)
+        nlp_engine = provider.create_engine()
 
         self._analyzer = AnalyzerEngine(nlp_engine=nlp_engine, supported_languages=[language])
         self._anonymizer = AnonymizerEngine()
+
+        # Token assignments persist across mask() calls, so every document in a
+        # pack masked by this instance gets the same token for the same value
+        # ("Alex Morgan" is MASKED_PERSON_1 in the Schedule and the Certificate).
+        # Without this, tokens were numbered per document and the arbiter's
+        # driver matching paired the wrong people. Call reset() between packs.
+        self._original_to_token: dict[tuple[str, str], str] = {}
+        self._counters: dict[str, int] = {}
+
+    def reset(self) -> None:
+        """Forget token assignments, e.g. before masking an unrelated pack."""
+        self._original_to_token.clear()
+        self._counters.clear()
 
     # ------------------------------------------------------------------
     # Public API
@@ -125,31 +134,27 @@ class PIIMasker:
         if not results:
             return text, {}
 
-        # Build per-entity-type counters for unique token names
-        counters: dict[str, int] = {}
         token_map: dict[str, str] = {}
-        operators: dict[str, OperatorConfig] = {}
 
         # Sort by position so token numbering is left-to-right and deterministic
         results_sorted = sorted(results, key=lambda r: r.start)
 
-        # We need custom lambda operators to generate named tokens.
-        # Presidio's "replace" operator uses a fixed `new_value`; we work
-        # around this by building a value map keyed on (entity_type, original).
-        original_to_token: dict[tuple[str, str], str] = {}
-
+        # Presidio's "replace" operator uses a fixed `new_value`, so tokens are
+        # assigned here, keyed on (entity_type, normalised original) and shared
+        # across calls on this instance.
         for r in results_sorted:
             original = text[r.start : r.end]
-            key = (r.entity_type, original)
-            if key not in original_to_token:
-                counters[r.entity_type] = counters.get(r.entity_type, 0) + 1
-                token = f"{_TOKEN_PREFIX}{r.entity_type}_{counters[r.entity_type]}"
-                original_to_token[key] = token
-                token_map[token] = original
+            key = _token_key(r.entity_type, original)
+            token = self._original_to_token.get(key)
+            if token is None:
+                self._counters[r.entity_type] = self._counters.get(r.entity_type, 0) + 1
+                token = f"{_TOKEN_PREFIX}{r.entity_type}_{self._counters[r.entity_type]}"
+                self._original_to_token[key] = token
+            token_map.setdefault(token, original)
 
         # Perform replacement manually (Presidio replace operator doesn't
         # support per-occurrence dynamic values in a single pass).
-        masked_text = _replace_spans(text, results_sorted, original_to_token)
+        masked_text = _replace_spans(text, results_sorted, self._original_to_token)
         return masked_text, token_map
 
     def restore(self, text: str, token_map: dict[str, str]) -> str:
@@ -169,6 +174,23 @@ class PIIMasker:
 # ---------------------------------------------------------------------------
 
 
+def _pick_spacy_model() -> str:
+    """Return en_core_web_lg if installed, else en_core_web_sm."""
+    try:
+        import spacy.util
+
+        if spacy.util.is_package("en_core_web_lg"):
+            return "en_core_web_lg"
+    except ImportError:
+        pass
+    return "en_core_web_sm"
+
+
+def _token_key(entity_type: str, original: str) -> tuple[str, str]:
+    """Token lookup key: same entity type, case and runs of whitespace ignored."""
+    return entity_type, " ".join(original.split()).casefold()
+
+
 def _replace_spans(
     text: str,
     results: list[RecognizerResult],
@@ -181,6 +203,6 @@ def _replace_spans(
     chars = list(text)
     for r in sorted(results, key=lambda r: r.start, reverse=True):
         original = text[r.start : r.end]
-        token = original_to_token.get((r.entity_type, original), original)
+        token = original_to_token.get(_token_key(r.entity_type, original), original)
         chars[r.start : r.end] = list(token)
     return "".join(chars)

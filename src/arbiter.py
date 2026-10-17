@@ -166,6 +166,11 @@ def _check_conflict(
     return _first(sched_val, cert_val)  # schedule wins (default)
 
 
+def _is_masked(name: str) -> bool:
+    """True for a placeholder token produced by PIIMasker."""
+    return name.strip().startswith("MASKED_")
+
+
 def _find_matching_driver(name: str, candidates: list[Driver]) -> Driver | None:
     """
     Find the best-matching driver from *candidates* using fuzzy name matching.
@@ -174,6 +179,12 @@ def _find_matching_driver(name: str, candidates: list[Driver]) -> Driver | None:
     differences (e.g. "JOHN A SMITH" vs "SMITH JOHN") still match.
     Returns None when the best score is below ``_DRIVER_NAME_MATCH_THRESHOLD``.
     """
+    # Masked names (MASKED_PERSON_1, MASKED_PERSON_2, ...) differ by one
+    # character, so any two score ~93 on token_sort_ratio and would "match".
+    # Tokens are consistent across a pack, so they must match exactly.
+    if _is_masked(name):
+        return next((d for d in candidates if d.name.strip() == name.strip()), None)
+
     try:
         from rapidfuzz import fuzz as rfuzz
     except ImportError:
@@ -184,6 +195,8 @@ def _find_matching_driver(name: str, candidates: list[Driver]) -> Driver | None:
     best_score = 0
     best_driver: Driver | None = None
     for candidate in candidates:
+        if _is_masked(candidate.name):
+            continue
         score = rfuzz.token_sort_ratio(name.strip(), candidate.name.strip())
         if score > best_score:
             best_score = score

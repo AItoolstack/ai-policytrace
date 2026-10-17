@@ -108,7 +108,7 @@ See [docs/architecture.md](docs/architecture.md) for the detailed walkthrough.
 
 ```powershell
 pip install -r requirements.txt
-python -m spacy download en_core_web_sm
+python -m spacy download en_core_web_lg
 Copy-Item .env.example .env
 ```
 

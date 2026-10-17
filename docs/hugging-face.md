@@ -8,7 +8,7 @@ The root `Dockerfile` does this:
 
 1. Builds the React UI with Vite.
 2. Installs the Python backend dependencies.
-3. Downloads the small spaCy English model used by Presidio.
+3. Downloads the spaCy English model (en_core_web_lg) used by Presidio.
 4. Copies `ui/dist` into the image.
 5. Starts FastAPI on port `7860`.
 6. Lets FastAPI serve both `/api/*` and the React app.
