@@ -22,7 +22,7 @@
     @apply bg-ink text-ink-100 font-sans antialiased;
     text-rendering: optimizeLegibility;
   }
-  ::selection { background: rgba(224, 169, 70, 0.35); }
+  ::selection { background: rgba(224, 169, 70, 0.30); }
   :focus-visible { outline: 2px solid #E0A946; outline-offset: 2px; border-radius: 6px; }
 }
 
@@ -35,14 +35,11 @@
       disabled:opacity-50 disabled:cursor-not-allowed;
     min-height: 44px;
   }
-  .btn-signal { @apply btn bg-signal text-ink hover:bg-signal-hover; }
-  .btn-ghost { @apply btn border border-ink-600 text-ink-100 hover:bg-ink-800; }
-  .grid-bg {
-    background-image:
-      linear-gradient(rgba(44, 55, 82, 0.35) 1px, transparent 1px),
-      linear-gradient(90deg, rgba(44, 55, 82, 0.35) 1px, transparent 1px);
-    background-size: 56px 56px;
-  }
+  .btn { border-radius: 999px; }
+  .btn-signal { @apply btn bg-ink-100 text-white hover:bg-black; }
+  .btn-ghost { @apply btn border border-ink-500 bg-white text-ink-100 hover:border-ink-100; }
+  .grid-bg { background-color: #F6F5F1; }
+  .wash { background-color: #F3F2EF; }
 }
 
 /* ── react-pdf ──────────────────────────────────────────────────── */
@@ -52,7 +49,7 @@
 .pdf-scroll-container { scroll-behavior: smooth; }
 
 /* Thin scrollbars that suit both panes */
-.scroll-ink { scrollbar-color: #2C3752 transparent; scrollbar-width: thin; }
+.scroll-ink { scrollbar-color: #D9D6CF transparent; scrollbar-width: thin; }
 .scroll-paper { scrollbar-color: #D3D0C6 transparent; scrollbar-width: thin; }
 
 @media (prefers-reduced-motion: reduce) {

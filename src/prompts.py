@@ -11,8 +11,8 @@ Usage
     registry = PromptRegistry(config_path="custom.yaml")
 
     system_prompt = registry.get(DocumentType.SCHEDULE)
-    print(registry.active_version)   # → "v1"
-    print(registry.available_versions)  # → ["v1"]
+    print(registry.active_version)   # → "v2" (the active_version in config/prompts.yaml)
+    print(registry.available_versions)  # → ["v1", "v2"]
 """
 from __future__ import annotations
 

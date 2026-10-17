@@ -6,13 +6,13 @@ import type { SamplePack } from './types'
 import { ExternalIcon, LINKS, Lockup, Spinner } from './Brand'
 
 const PIPELINE = [
-  ['01', 'parse', 'Docling layout + text'],
-  ['02', 'pii_mask', 'Presidio, before any model call'],
-  ['03', 'classify', 'route each document'],
-  ['04', 'extract', 'typed record + verbatim citations'],
-  ['05', 'arbitrate', 'source-authority rules'],
-  ['06', 'provenance', 'match citations to PDF geometry'],
-  ['07', 'review', 'you verify, flag or override'],
+  ['01', 'parse', 'Docling: text and page positions'],
+  ['02', 'mask', 'Presidio: names out before any model call'],
+  ['03', 'classify', 'which document is which'],
+  ['04', 'extract', 'typed record + the exact phrase read'],
+  ['05', 'merge', 'a written rule picks the winner'],
+  ['06', 'trace', 'each value back to its PDF line'],
+  ['07', 'review', 'you verify, override or flag'],
 ] as const
 
 export function UploadPage() {
@@ -111,27 +111,27 @@ export function UploadPage() {
 
           {/* Left: what this is */}
           <section className="space-y-7 lg:pt-4">
-            <p className="eyebrow text-signal">Reference system · Document AI</p>
-            <h1 className="text-[40px] sm:text-[52px] leading-[1.0] font-semibold tracking-[-0.045em] text-ink-100">
-              Reviewable extraction for motor insurance packs.
+            <p className="inline-flex font-mono text-[12px] uppercase tracking-[0.06em] text-[#2F5FA8] bg-[#E8EFFA] rounded-full px-2.5 py-1">Reference system · Document AI</p>
+            <h1 className="text-[34px] sm:text-[44px] leading-[1.08] font-semibold tracking-[-0.03em] text-ink-100">
+              A policy pack in. One checked record out.
             </h1>
             <p className="text-[17px] leading-relaxed text-ink-300 max-w-[34rem]">
-              Upload a Schedule, Certificate, Statement of Fact and Policy Booklet. PolicyTrace builds one typed
-              Golden Record, resolves disagreements between documents, and links every field back to the exact
-              place it came from in the PDF.
+              Upload the Schedule, Certificate, Statement of Fact and policy booklet. PolicyTrace pulls the facts a
+              claims handler needs into one typed record, settles disagreements between documents with a written rule,
+              and links every value to the line in the PDF it came from.
             </p>
 
-            <ol className="rounded-xl border border-ink-600 bg-ink-800/90 font-mono text-[13px] overflow-hidden" aria-label="Pipeline">
+            <ol className="rounded-xl border border-ink-700 bg-white font-mono text-[13px] overflow-hidden" aria-label="Pipeline">
               {PIPELINE.map(([n, name, desc], i) => {
                 const state = !loading ? 'idle' : i < step ? 'done' : i === step ? 'active' : 'idle'
                 return (
                   <li key={n} className="flex items-center gap-4 px-4 py-2.5 border-b border-dashed border-ink-700 last:border-b-0">
                     <span className="w-6 text-ink-400">{n}</span>
-                    <span className={`w-24 ${state === 'active' ? 'text-signal' : 'text-ink-100'}`}>{name}</span>
+                    <span className={`w-24 ${state === 'active' ? 'text-signal-deep' : 'text-ink-100'}`}>{name}</span>
                     <span className="flex-1 text-ink-400 truncate">{desc}</span>
                     <span className="w-14 text-right">
-                      {state === 'done' && <span className="text-[#6FCF97]">ok</span>}
-                      {state === 'active' && <span className="inline-flex text-signal"><Spinner className="h-3.5 w-3.5" /></span>}
+                      {state === 'done' && <span className="text-state-pass">ok</span>}
+                      {state === 'active' && <span className="inline-flex text-signal-deep"><Spinner className="h-3.5 w-3.5" /></span>}
                     </span>
                   </li>
                 )
@@ -140,7 +140,7 @@ export function UploadPage() {
           </section>
 
           {/* Right: upload card */}
-          <section className="rounded-2xl border border-ink-600 bg-ink-800 p-5 sm:p-6 shadow-page" aria-label="Upload documents">
+          <section className="rounded-2xl border border-ink-700 bg-white p-5 sm:p-6 shadow-page" aria-label="Upload documents">
             <div
               role="button"
               tabIndex={0}
@@ -151,7 +151,7 @@ export function UploadPage() {
               onDrop={(e) => { e.preventDefault(); setDragOver(false); handleFiles(e.dataTransfer.files) }}
               onClick={() => inputRef.current?.click()}
               className={`rounded-xl border border-dashed px-6 py-10 text-center cursor-pointer transition-colors ${
-                dragOver ? 'border-signal bg-signal/10' : 'border-ink-500 hover:border-ink-400 bg-ink-900/40'
+                dragOver ? 'border-signal bg-signal-tint' : 'border-ink-500 hover:border-ink-400 bg-ink-800'
               }`}
             >
               <svg className={`mx-auto mb-4 h-9 w-9 ${dragOver ? 'text-signal' : 'text-ink-400'}`} fill="none" viewBox="0 0 24 24"
@@ -159,7 +159,7 @@ export function UploadPage() {
                 <path strokeLinecap="round" strokeLinejoin="round" d="M12 16V4m0 0-4 4m4-4 4 4M4 16v2a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-2" />
               </svg>
               <p className="text-[15px] font-medium text-ink-100">
-                Drop PDFs here or <span className="text-signal">browse</span>
+                Drop PDFs here or <span className="text-signal-deep underline decoration-signal underline-offset-2">browse</span>
               </p>
               <p className="mt-1.5 font-mono text-[12px] text-ink-400">Schedule · Certificate · Statement of Fact · Booklet</p>
               <input ref={inputRef} type="file" accept=".pdf" multiple className="hidden"
@@ -167,7 +167,7 @@ export function UploadPage() {
             </div>
 
             {samplePack?.files.length ? (
-              <div className="mt-4 rounded-xl border border-ink-600 bg-ink-900/50 p-4">
+              <div className="mt-4 rounded-xl border border-ink-700 bg-ink-800 p-4">
                 <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
                   <div>
                     <p className="text-sm font-medium text-ink-100">No documents to hand?</p>
@@ -185,7 +185,7 @@ export function UploadPage() {
             {files.length > 0 && (
               <ul className="mt-4 space-y-2" aria-label="Selected files">
                 {files.map((f) => (
-                  <li key={f.name} className="flex items-center justify-between gap-3 rounded-lg border border-ink-600 bg-ink-900/40 px-3.5 py-2.5">
+                  <li key={f.name} className="flex items-center justify-between gap-3 rounded-lg border border-ink-700 bg-ink-800 px-3.5 py-2.5">
                     <div className="flex items-center gap-3 min-w-0">
                       <span className="shrink-0 rounded font-mono text-[10px] font-medium px-1.5 py-0.5 bg-ink-700 text-ink-300">PDF</span>
                       <span className="text-sm text-ink-200 truncate">{f.name}</span>
@@ -200,13 +200,13 @@ export function UploadPage() {
             )}
 
             {error && (
-              <div role="alert" className="mt-4 rounded-lg border border-state-flag/40 bg-state-flag/10 px-3.5 py-3 text-sm text-[#F2B79A]">
+              <div role="alert" className="mt-4 rounded-lg border border-state-flag/40 bg-state-flag/10 px-3.5 py-3 text-sm text-state-flag">
                 {error}
               </div>
             )}
 
             <button onClick={handleSubmit} disabled={!files.length || loading} className="btn-signal w-full mt-5 text-[15px]">
-              {loading ? <><Spinner /> Extracting · usually 30–90 s</> : <>Extract &amp; review{files.length ? ` ${files.length} file${files.length > 1 ? 's' : ''}` : ''}</>}
+              {loading ? <><Spinner /> Extracting · usually 2–3 min</> : <>Extract &amp; review{files.length ? ` ${files.length} file${files.length > 1 ? 's' : ''}` : ''}</>}
             </button>
 
             <p className="mt-4 text-[12px] leading-relaxed text-ink-400">
@@ -217,7 +217,7 @@ export function UploadPage() {
       </main>
 
       <footer className="border-t border-ink-700 px-5 sm:px-8 py-4 flex flex-wrap gap-x-6 gap-y-1 justify-between font-mono text-[12px] text-ink-400">
-        <span>PolicyTrace · a reference system from <a className="text-ink-300 hover:text-signal" href="https://www.ai-toolstack.com/" target="_blank" rel="noopener noreferrer">ai·toolstack</a></span>
+        <span>PolicyTrace · a reference system from <a className="text-ink-300 hover:text-signal-deep" href="https://www.ai-toolstack.com/" target="_blank" rel="noopener noreferrer">ai·toolstack</a></span>
         <span>Docling · Presidio · Groq · Instructor · FastAPI · React</span>
       </footer>
     </div>

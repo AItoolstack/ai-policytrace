@@ -3,7 +3,11 @@ privacy.py — PII detection and masking via Microsoft Presidio.
 
 Entities masked before any text is sent to the LLM:
   PERSON, PHONE_NUMBER, EMAIL_ADDRESS, UK_NHS, UK_NIN,
-  CREDIT_CARD, IBAN_CODE, DATE_TIME (opt-in), LOCATION
+  CREDIT_CARD, IBAN_CODE, LOCATION, IP_ADDRESS, URL, DATE_TIME (opt-in)
+
+Not masked: UK postcodes (Presidio has no UK postcode recogniser; LOCATION is
+a named-entity model that catches place names, not postcodes) and often street
+lines. Dates of birth are not masked unless DATE_TIME is enabled.
 
 Usage
 -----
@@ -37,7 +41,7 @@ UK_MOTOR_ENTITIES: list[str] = [
     "UK_NIN",         # National Insurance Number
     "CREDIT_CARD",
     "IBAN_CODE",
-    "LOCATION",       # postcodes / addresses
+    "LOCATION",       # place names only; UK postcodes are NOT caught
     "IP_ADDRESS",
     "URL",
 ]

@@ -72,7 +72,7 @@ export function FieldRow({ entry, sessionId, isActive, review, onClick }: Props)
                   if (e.key === 'Escape') setEditing(false)
                 }}
               />
-              <button onClick={handleSaveOverride} className="text-[12px] font-medium px-3 rounded-md bg-ink text-ink-100 hover:bg-ink-700">Save</button>
+              <button onClick={handleSaveOverride} className="text-[12px] font-medium px-3 rounded-md bg-ink-100 text-white hover:bg-black">Save</button>
               <button onClick={() => setEditing(false)} className="text-[12px] font-medium px-3 rounded-md border border-paper-rule text-paper-ink hover:bg-paper">Cancel</button>
             </div>
           ) : (
