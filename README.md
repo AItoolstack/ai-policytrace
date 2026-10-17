@@ -194,7 +194,7 @@ See [SECURITY.md](SECURITY.md).
 
 ## Current Limitations
 
-- Public demo extraction is synchronous and can take 30 to 90 seconds.
+- Public demo extraction is synchronous and takes two to three minutes on the Groq free tier.
 - Provenance matching is useful but not a legal-grade guarantee.
 - Public deployments should use synthetic/redacted documents unless stronger retention and access controls are added.
 - Production use needs authentication, audit logs, monitoring, and storage policy controls.
