@@ -10,7 +10,9 @@
 [![Docker](https://img.shields.io/badge/Docker-ready-2496ED?logo=docker&logoColor=white)](Dockerfile)
 [![License: MIT](https://img.shields.io/badge/License-MIT-green.svg)](LICENSE)
 
-PolicyTrace is part of [AI Tool Stack](https://www.ai-toolstack.com/): practical AI builds, deployable workflows, and lessons beyond the demo.
+PolicyTrace is a reference system from [ai·toolstack](https://www.ai-toolstack.com/projects/policytrace/), where each chapter of its design is written up: architecture, source authority, evidence, evaluation and honest limits.
+
+**Live demo:** [Hugging Face Space](https://huggingface.co/spaces/AItoolstack/AI-PolicyTrace) (first load can take about a minute while it wakes up).
 
 ## Why This Project Exists
 
