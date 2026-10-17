@@ -83,7 +83,7 @@ class Driver(BaseModel):
     relationship: Optional[str] = None
     occupation: Optional[str] = None
     license_type: Optional[str] = None
-    is_main_driver: bool = False
+    is_main_driver: Optional[bool] = None  # None = the document did not say
     specific_excess: Optional[float] = None
 
 

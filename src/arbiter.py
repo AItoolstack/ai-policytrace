@@ -131,6 +131,15 @@ def _first(*values):
     return None
 
 
+def _normalise(value) -> str:
+    """Comparison key: case-insensitive, with runs of whitespace collapsed.
+
+    PDF text extraction often leaves double spaces inside a value
+    ("Motor  Insurance"), which is not a real disagreement.
+    """
+    return " ".join(str(value).split()).lower()
+
+
 def _check_conflict(
     conflicts: list[ConflictEntry],
     field: str,
@@ -145,7 +154,7 @@ def _check_conflict(
     ``winner`` must be ``"schedule"`` or ``"certificate"``.
     """
     if sched_val is not None and cert_val is not None:
-        if str(sched_val).strip().lower() != str(cert_val).strip().lower():
+        if _normalise(sched_val) != _normalise(cert_val):
             conflicts.append(ConflictEntry(
                 field=field,
                 schedule_value=str(sched_val),
@@ -225,7 +234,12 @@ def _merge_drivers(
     for sd in sched_drivers:
         cd = _find_matching_driver(sd.name, cert_drivers)
 
-        if cd is not None and sd.is_main_driver != cd.is_main_driver:
+        if (
+            cd is not None
+            and sd.is_main_driver is not None
+            and cd.is_main_driver is not None
+            and sd.is_main_driver != cd.is_main_driver
+        ):
             conflicts.append(ConflictEntry(
                 field=f"driver_details[{sd.name}].is_main_driver",
                 schedule_value=str(sd.is_main_driver),
@@ -239,7 +253,10 @@ def _merge_drivers(
             relationship=_first(sd.relationship, cd.relationship if cd else None),
             occupation=_first(sd.occupation, cd.occupation if cd else None),
             license_type=_first(sd.license_type, cd.license_type if cd else None),
-            is_main_driver=sd.is_main_driver or (cd.is_main_driver if cd else False),
+            # Schedule wins, as recorded in the conflict entry above. Only a
+            # missing value (None) is filled from the Certificate; an explicit
+            # False on the Schedule is kept.
+            is_main_driver=_first(sd.is_main_driver, cd.is_main_driver if cd else None),
             specific_excess=_first(sd.specific_excess, cd.specific_excess if cd else None),
         ))
     return merged

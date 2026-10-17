@@ -57,9 +57,10 @@ export function RecordPane({ sessionId }: Props) {
                   <span className="font-mono text-[12px] text-paper-muted">{c.field}</span>
                   <span className="block mt-0.5">
                     Winner: <span className="font-semibold capitalize">{c.winner}</span>
-                    {c.schedule_value && c.certificate_value ? (
-                      <span className="text-paper-muted"> · schedule and certificate wording differ</span>
-                    ) : null}
+                  </span>
+                  <span className="block mt-0.5 text-[12px] text-paper-muted">
+                    Schedule: <span className="text-paper-ink">{c.schedule_value ?? '—'}</span>
+                    {' · '}Certificate: <span className="text-paper-ink">{c.certificate_value ?? '—'}</span>
                   </span>
                 </li>
               ))}

@@ -56,7 +56,7 @@ export interface Driver {
   relationship?: string
   occupation?: string
   license_type?: string
-  is_main_driver: boolean
+  is_main_driver: boolean | null
   specific_excess?: number
 }
 

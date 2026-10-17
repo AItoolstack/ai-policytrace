@@ -301,3 +301,70 @@ class TestFieldCitationsMerge:
         golden, _ = arbiter.merge_records(sched, "s.pdf", cert, "c.pdf")
         # Neither side has citations → merged record has None
         assert golden.field_citations is None
+
+
+# ---------------------------------------------------------------------------
+# Regressions found on the live demo run (Oct 2026)
+# ---------------------------------------------------------------------------
+
+def _value_at(record: UKMotorGoldenRecord, field: str):
+    """Resolve a ConflictEntry field path, including driver_details[NAME].attr."""
+    import re
+    m = re.match(r"driver_details\[(.+)\]\.(\w+)$", field)
+    if m:
+        name, attr = m.groups()
+        driver = next(d for d in record.driver_details if d.name == name)
+        return getattr(driver, attr)
+    obj = record
+    for part in field.split("."):
+        obj = getattr(obj, part)
+    return obj
+
+
+class TestLiveRunRegressions:
+    def test_internal_whitespace_is_not_a_conflict(self):
+        sched = _make_schedule(insurer="Northbridge Mutual Motor  Insurance Ltd",
+                               class_of_use="Social, domestic and  pleasure")
+        cert = _make_certificate(insurer="Northbridge Mutual Motor Insurance Ltd",
+                                 class_of_use="Social, domestic and pleasure")
+        _, conflicts = PolicyArbiter().merge_records(sched, "s.pdf", cert, "c.pdf")
+        assert [c.field for c in conflicts] == []
+
+    def test_schedule_false_main_driver_is_kept(self):
+        sched = _make_schedule(drivers=[
+            {"name": "ALICE SMITH", "is_main_driver": True},
+            {"name": "BOB JONES", "is_main_driver": False},
+        ])
+        cert = _make_certificate(drivers=[
+            {"name": "ALICE SMITH", "is_main_driver": False},
+            {"name": "BOB JONES", "is_main_driver": True},
+        ])
+        golden, conflicts = PolicyArbiter().merge_records(sched, "s.pdf", cert, "c.pdf")
+        main = [d.name for d in golden.driver_details if d.is_main_driver]
+        assert main == ["ALICE SMITH"]
+        assert len([c for c in conflicts if c.field.endswith("is_main_driver")]) == 2
+
+    def test_missing_main_driver_is_filled_from_certificate(self):
+        sched = _make_schedule(drivers=[{"name": "ALICE SMITH"}])
+        cert = _make_certificate(drivers=[{"name": "ALICE SMITH", "is_main_driver": True}])
+        golden, conflicts = PolicyArbiter().merge_records(sched, "s.pdf", cert, "c.pdf")
+        assert golden.driver_details[0].is_main_driver is True
+        assert conflicts == []
+
+    def test_record_matches_conflict_ledger(self):
+        """For every recorded conflict, the Golden Record holds the winner's value."""
+        sched = _make_schedule(
+            policy_number="SCHED-100", class_of_use="Social Only",
+            drivers=[{"name": "ALICE SMITH", "is_main_driver": True},
+                     {"name": "BOB JONES", "is_main_driver": False}],
+        )
+        cert = _make_certificate(
+            policy_number="CERT-200", class_of_use="Social, Domestic and Pleasure",
+            drivers=[{"name": "ALICE SMITH", "is_main_driver": False},
+                     {"name": "BOB JONES", "is_main_driver": True}],
+        )
+        golden, conflicts = PolicyArbiter().merge_records(sched, "s.pdf", cert, "c.pdf")
+        assert conflicts
+        for c in conflicts:
+            expected = c.schedule_value if c.winner == "schedule" else c.certificate_value
+            assert str(_value_at(golden, c.field)) == expected, c.field
