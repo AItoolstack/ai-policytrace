@@ -168,3 +168,18 @@ export interface ProcessResponse {
   fields_extracted: number
   provenance_coverage: number
 }
+
+export interface SampleFile {
+  filename: string
+  size_bytes: number
+  url: string
+}
+
+export interface SamplePack {
+  pack_name: string
+  description: string
+  warning: string
+  expected_policy_number?: string
+  expected_vrm?: string
+  files: SampleFile[]
+}

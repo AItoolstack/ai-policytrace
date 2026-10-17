@@ -1,9 +1,19 @@
 import axios from 'axios'
-import type { ProcessResponse, ReviewAction, ReviewState, SessionData } from './types'
+import type { ProcessResponse, ReviewAction, ReviewState, SampleFile, SamplePack, SessionData } from './types'
 
 const http = axios.create({ baseURL: '/' })
 
 export const api = {
+  async getSamples(): Promise<SamplePack> {
+    const { data } = await http.get<SamplePack>('/api/samples')
+    return data
+  },
+
+  async downloadSampleFile(sample: SampleFile): Promise<File> {
+    const { data } = await http.get<Blob>(sample.url, { responseType: 'blob' })
+    return new File([data], sample.filename, { type: 'application/pdf' })
+  },
+
   async processDocuments(files: File[]): Promise<ProcessResponse> {
     const form = new FormData()
     for (const f of files) form.append('files', f)

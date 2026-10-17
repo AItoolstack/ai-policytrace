@@ -1,7 +1,7 @@
 import { PDFPane } from './PDFPane'
 import { RecordPane } from './RecordPane'
 import { useStore } from './store'
-import logoUrl from './assets/ai-toolstack-logo.svg'
+import { ExternalIcon, LINKS, Lockup } from './Brand'
 
 interface Props {
   sessionId: string
@@ -11,48 +11,50 @@ export function ReviewDashboard({ sessionId }: Props) {
   const sessionData = useStore((s) => s.sessionData)
   const reviewState = useStore((s) => s.reviewState)
 
-  const verified = Object.values(reviewState).filter((r) => r.action === 'verify').length
-  const overridden = Object.values(reviewState).filter((r) => r.action === 'override').length
+  const reviews = Object.values(reviewState)
+  const verified = reviews.filter((r) => r.action === 'verify').length
+  const overridden = reviews.filter((r) => r.action === 'override').length
+  const flagged = reviews.filter((r) => r.action === 'reject').length
   const provTotal = sessionData?.provenance.length ?? 0
   const fieldTotal = sessionData ? _countLeaves(sessionData.record) : 0
+  const reviewed = verified + overridden + flagged
 
   return (
-    <div className="flex flex-col h-screen overflow-hidden" style={{ backgroundColor: '#f1f5f9' }}>
-
-      {/* ── Top bar ─────────────────────────────────────────────────── */}
-      <header className="flex items-center justify-between px-6 py-3 bg-white border-b border-gray-200 shadow-sm z-10 flex-shrink-0">
-        <div className="flex items-center gap-4">
-          <a href="https://www.ai-toolstack.com/" target="_blank" rel="noopener noreferrer">
-            <img src={logoUrl} alt="AI Tool Stack" className="h-6 w-auto" />
-          </a>
-          {/* Divider */}
-          <span className="text-gray-200 select-none">|</span>
-          <div className="flex items-center gap-2">
-            <svg width="16" height="16" viewBox="0 0 28 28" fill="none" aria-hidden="true">
-              <path d="M4 18L14 22L24 18" stroke="#1F2937" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"/>
-              <path d="M4 14L14 18L24 14" stroke="#2563EB" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"/>
-              <path d="M4 10L14 14L24 10L14 6L4 10Z" stroke="#008080" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"/>
-            </svg>
-            <span className="text-sm font-semibold" style={{ color: '#1F2937' }}>PolicyTrace</span>
-          </div>
-          <span className="text-xs text-gray-400 font-mono bg-gray-50 px-2 py-0.5 rounded-lg border border-gray-200">
-            {sessionId.slice(0, 8)}…
+    <div className="flex flex-col h-screen overflow-hidden bg-ink">
+      {/* ── Top bar ─────────────────────────────────────────────── */}
+      <header className="flex items-center justify-between gap-4 px-4 sm:px-6 h-14 border-b border-ink-700 flex-shrink-0">
+        <div className="flex items-center gap-3 min-w-0">
+          <Lockup />
+          <span className="hidden md:inline font-mono text-[11px] text-ink-400 border border-ink-600 rounded-md px-2 py-1">
+            session {sessionId.slice(0, 8)}
           </span>
         </div>
-        <div className="flex items-center gap-3 text-xs text-gray-500">
-          <Stat label="Fields" value={fieldTotal} />
-          <StatDivider />
-          <Stat label="Located" value={provTotal} />
-          <StatDivider />
-          <Stat label="Verified" value={verified} color="#16a34a" />
-          <StatDivider />
-          <Stat label="Overridden" value={overridden} color="#2563EB" />
+
+        <dl className="hidden lg:flex items-center gap-1 font-mono text-[12px]">
+          <Stat label="fields" value={fieldTotal} />
+          <Stat label="located" value={`${provTotal}`} />
+          <Stat label="verified" value={verified} tone="pass" />
+          <Stat label="overridden" value={overridden} tone="override" />
+          <Stat label="flagged" value={flagged} tone="flag" />
+        </dl>
+
+        <div className="flex items-center gap-3">
+          <div className="hidden sm:flex items-center gap-2" aria-label={`${reviewed} of ${fieldTotal} fields reviewed`}>
+            <div className="h-1.5 w-28 rounded-full bg-ink-700 overflow-hidden">
+              <div className="h-full bg-signal transition-all" style={{ width: `${fieldTotal ? Math.min(100, (reviewed / fieldTotal) * 100) : 0}%` }} />
+            </div>
+            <span className="font-mono text-[11px] text-ink-400">{reviewed}/{fieldTotal}</span>
+          </div>
+          <a href={LINKS.chapters} target="_blank" rel="noopener noreferrer"
+            className="hidden md:inline-flex items-center gap-1.5 text-[13px] text-ink-300 hover:text-ink-100">
+            How it’s built <ExternalIcon />
+          </a>
         </div>
       </header>
 
-      {/* ── 2-column body ───────────────────────────────────────────── */}
+      {/* ── 2-column body ───────────────────────────────────────── */}
       <div className="flex flex-1 overflow-hidden">
-        <div className="w-1/2 border-r border-gray-200 flex flex-col overflow-hidden">
+        <div className="w-1/2 border-r border-ink-700 flex flex-col overflow-hidden">
           <PDFPane sessionId={sessionId} />
         </div>
         <div className="w-1/2 flex flex-col overflow-hidden">
@@ -63,24 +65,18 @@ export function ReviewDashboard({ sessionId }: Props) {
   )
 }
 
-function StatDivider() {
-  return <span className="text-gray-200 select-none">·</span>
-}
+const TONES = {
+  pass: 'text-[#6FCF97]',
+  override: 'text-[#A9B8E0]',
+  flag: 'text-[#F2A35E]',
+} as const
 
-function Stat({
-  label,
-  value,
-  color = '#374151',
-}: {
-  label: string
-  value: number
-  color?: string
-}) {
+function Stat({ label, value, tone }: { label: string; value: number | string; tone?: keyof typeof TONES }) {
   return (
-    <span>
-      {label}:{' '}
-      <span className="font-semibold" style={{ color }}>{value}</span>
-    </span>
+    <div className="flex items-baseline gap-1.5 px-2.5 py-1 rounded-md">
+      <dd className={`font-medium ${tone ? TONES[tone] : 'text-ink-100'}`}>{value}</dd>
+      <dt className="text-ink-400">{label}</dt>
+    </div>
   )
 }
 

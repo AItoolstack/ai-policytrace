@@ -1,35 +1,77 @@
-import { useCallback, useState } from 'react'
+import { useCallback, useEffect, useRef, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { api } from './api'
 import { useStore } from './store'
-import logoUrl from './assets/ai-toolstack-logo.svg'
+import type { SamplePack } from './types'
+import { ExternalIcon, LINKS, Lockup, Spinner } from './Brand'
 
-const BRAND = {
-  dark: '#1F2937',
-  blue: '#2563EB',
-  teal: '#008080',
-} as const
+const PIPELINE = [
+  ['01', 'parse', 'Docling layout + text'],
+  ['02', 'pii_mask', 'Presidio, before any model call'],
+  ['03', 'classify', 'route each document'],
+  ['04', 'extract', 'typed record + verbatim citations'],
+  ['05', 'arbitrate', 'source-authority rules'],
+  ['06', 'provenance', 'match citations to PDF geometry'],
+  ['07', 'review', 'you verify, flag or override'],
+] as const
 
 export function UploadPage() {
   const navigate = useNavigate()
   const setSession = useStore((s) => s.setSession)
+  const inputRef = useRef<HTMLInputElement>(null)
 
   const [loading, setLoading] = useState(false)
+  const [step, setStep] = useState(0)
   const [error, setError] = useState<string | null>(null)
   const [files, setFiles] = useState<File[]>([])
   const [dragOver, setDragOver] = useState(false)
+  const [samplePack, setSamplePack] = useState<SamplePack | null>(null)
+  const [loadingSamples, setLoadingSamples] = useState(false)
 
-  const handleFiles = useCallback((incoming: FileList | null) => {
-    if (!incoming) return
-    const pdfs = Array.from(incoming).filter((f) => f.name.toLowerCase().endsWith('.pdf'))
+  useEffect(() => {
+    let isMounted = true
+    api.getSamples()
+      .then((pack) => { if (isMounted) setSamplePack(pack) })
+      .catch(() => { if (isMounted) setSamplePack(null) })
+    return () => { isMounted = false }
+  }, [])
+
+  // Advance the visual pipeline while the (synchronous) request runs.
+  useEffect(() => {
+    if (!loading) return
+    setStep(0)
+    const t = setInterval(() => setStep((s) => Math.min(s + 1, PIPELINE.length - 2)), 6000)
+    return () => clearInterval(t)
+  }, [loading])
+
+  const addPdfFiles = useCallback((incoming: File[]) => {
+    const pdfs = incoming.filter((f) => f.name.toLowerCase().endsWith('.pdf'))
     setFiles((prev) => {
       const names = new Set(prev.map((f) => f.name))
       return [...prev, ...pdfs.filter((f) => !names.has(f.name))]
     })
   }, [])
 
-  const removeFile = (name: string) =>
-    setFiles((prev) => prev.filter((f) => f.name !== name))
+  const handleFiles = useCallback((incoming: FileList | null) => {
+    if (!incoming) return
+    addPdfFiles(Array.from(incoming))
+  }, [addPdfFiles])
+
+  const removeFile = (name: string) => setFiles((prev) => prev.filter((f) => f.name !== name))
+
+  const handleLoadSamples = async () => {
+    if (!samplePack?.files.length) return
+    setLoadingSamples(true)
+    setError(null)
+    try {
+      const demoFiles = await Promise.all(samplePack.files.map((sample) => api.downloadSampleFile(sample)))
+      addPdfFiles(demoFiles)
+    } catch (err: unknown) {
+      setError(err instanceof Error ? err.message : 'Could not load the demo sample files.')
+    } finally {
+      setLoadingSamples(false)
+    }
+  }
 
   const handleSubmit = async () => {
     if (!files.length) return
@@ -41,169 +83,142 @@ export function UploadPage() {
       setSession(sessionData)
       navigate(`/session/${resp.session_id}`)
     } catch (err: unknown) {
-      const msg = err instanceof Error ? err.message : 'An unknown error occurred.'
-      setError(msg)
+      setError(err instanceof Error ? err.message : 'An unknown error occurred.')
       setLoading(false)
     }
   }
 
   return (
-    <div className="min-h-screen flex flex-col" style={{ backgroundColor: '#f8fafc' }}>
-
-      {/* ── Top nav ─────────────────────────────────────────────────── */}
-      <header className="flex items-center justify-between px-8 py-4 border-b border-gray-200 bg-white">
-        <a href="https://www.ai-toolstack.com/" target="_blank" rel="noopener noreferrer">
-          <img src={logoUrl} alt="AI Tool Stack" className="h-7 w-auto" />
-        </a>
-        <span
-          className="text-xs font-medium px-2 py-1 rounded-full"
-          style={{ backgroundColor: '#f0fdfc', color: BRAND.teal }}
-        >
-          Beta
-        </span>
+    <div className="min-h-screen flex flex-col bg-ink">
+      {/* ── Top bar ─────────────────────────────────────────────── */}
+      <header className="flex items-center justify-between gap-4 px-5 sm:px-8 h-16 border-b border-ink-700">
+        <Lockup />
+        <nav className="flex items-center gap-1 text-sm">
+          <a href={LINKS.chapters} target="_blank" rel="noopener noreferrer"
+            className="hidden sm:inline-flex items-center gap-1.5 px-3 py-2 rounded-lg text-ink-300 hover:text-ink-100 hover:bg-ink-800">
+            How it’s built <ExternalIcon />
+          </a>
+          <a href={LINKS.github} target="_blank" rel="noopener noreferrer"
+            className="inline-flex items-center gap-1.5 px-3 py-2 rounded-lg text-ink-300 hover:text-ink-100 hover:bg-ink-800">
+            Source <ExternalIcon />
+          </a>
+        </nav>
       </header>
 
-      {/* ── Hero ────────────────────────────────────────────────────── */}
-      <main className="flex-1 flex flex-col items-center justify-center px-8 py-12">
-        <div className="w-full max-w-lg">
+      {/* ── Body ────────────────────────────────────────────────── */}
+      <main className="flex-1 grid-bg">
+        <div className="mx-auto max-w-6xl px-5 sm:px-8 py-12 lg:py-20 grid gap-10 lg:gap-16 lg:grid-cols-[1.05fr_1fr] items-start">
 
-          {/* Title */}
-          <div className="mb-8 text-center">
-            <div className="inline-flex items-center gap-2 mb-4">
-              <svg width="28" height="28" viewBox="0 0 28 28" fill="none" aria-hidden="true">
-                <path d="M4 18L14 22L24 18" stroke={BRAND.dark} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
-                <path d="M4 14L14 18L24 14" stroke={BRAND.blue} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
-                <path d="M4 10L14 14L24 10L14 6L4 10Z" stroke={BRAND.teal} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
-              </svg>
-              <h1 className="text-2xl font-bold tracking-tight" style={{ color: BRAND.dark }}>
-                PolicyTrace
-              </h1>
-            </div>
-            <p className="text-sm text-gray-500 leading-relaxed">
-              Upload UK motor insurance PDFs — the pipeline classifies, extracts, and merges
-              them into a verified Golden Record with full field-level provenance.
+          {/* Left: what this is */}
+          <section className="space-y-7 lg:pt-4">
+            <p className="eyebrow text-signal">Reference system · Document AI</p>
+            <h1 className="text-[40px] sm:text-[52px] leading-[1.0] font-semibold tracking-[-0.045em] text-ink-100">
+              Reviewable extraction for motor insurance packs.
+            </h1>
+            <p className="text-[17px] leading-relaxed text-ink-300 max-w-[34rem]">
+              Upload a Schedule, Certificate, Statement of Fact and Policy Booklet. PolicyTrace builds one typed
+              Golden Record, resolves disagreements between documents, and links every field back to the exact
+              place it came from in the PDF.
             </p>
-          </div>
 
-          {/* Drop zone */}
-          <div
-            onDragOver={(e) => { e.preventDefault(); setDragOver(true) }}
-            onDragLeave={() => setDragOver(false)}
-            onDrop={(e) => {
-              e.preventDefault()
-              setDragOver(false)
-              handleFiles(e.dataTransfer.files)
-            }}
-            onClick={() => document.getElementById('file-input')?.click()}
-            className="rounded-2xl border-2 border-dashed p-10 text-center cursor-pointer transition-all"
-            style={{
-              borderColor: dragOver ? BRAND.blue : '#d1d5db',
-              backgroundColor: dragOver ? '#eff6ff' : '#ffffff',
-            }}
-          >
-            <svg
-              className="mx-auto mb-3 h-10 w-10 transition-colors"
-              fill="none"
-              viewBox="0 0 24 24"
-              stroke="currentColor"
-              style={{ color: dragOver ? BRAND.blue : '#9ca3af' }}
-            >
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5}
-                d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12" />
-            </svg>
-            <p className="text-sm font-medium text-gray-700">
-              Drop PDF files here, or{' '}
-              <span style={{ color: BRAND.blue }}>click to browse</span>
-            </p>
-            <p className="text-xs text-gray-400 mt-1">
-              Schedule · Certificate · Statement of Fact · Policy Booklet
-            </p>
-            <input
-              id="file-input"
-              type="file"
-              accept=".pdf"
-              multiple
-              className="hidden"
-              onChange={(e) => handleFiles(e.target.files)}
-            />
-          </div>
-
-          {/* File list */}
-          {files.length > 0 && (
-            <ul className="mt-4 space-y-2">
-              {files.map((f) => (
-                <li
-                  key={f.name}
-                  className="flex items-center justify-between bg-white border border-gray-200 rounded-xl px-4 py-2.5 text-sm shadow-sm"
-                >
-                  <div className="flex items-center gap-2 min-w-0">
-                    <span
-                      className="shrink-0 text-xs font-semibold px-1.5 py-0.5 rounded"
-                      style={{ backgroundColor: '#fee2e2', color: '#991b1b' }}
-                    >
-                      PDF
+            <ol className="rounded-xl border border-ink-600 bg-ink-800/90 font-mono text-[13px] overflow-hidden" aria-label="Pipeline">
+              {PIPELINE.map(([n, name, desc], i) => {
+                const state = !loading ? 'idle' : i < step ? 'done' : i === step ? 'active' : 'idle'
+                return (
+                  <li key={n} className="flex items-center gap-4 px-4 py-2.5 border-b border-dashed border-ink-700 last:border-b-0">
+                    <span className="w-6 text-ink-400">{n}</span>
+                    <span className={`w-24 ${state === 'active' ? 'text-signal' : 'text-ink-100'}`}>{name}</span>
+                    <span className="flex-1 text-ink-400 truncate">{desc}</span>
+                    <span className="w-14 text-right">
+                      {state === 'done' && <span className="text-[#6FCF97]">ok</span>}
+                      {state === 'active' && <span className="inline-flex text-signal"><Spinner className="h-3.5 w-3.5" /></span>}
                     </span>
-                    <span className="text-gray-700 truncate">{f.name}</span>
-                  </div>
-                  <button
-                    onClick={() => removeFile(f.name)}
-                    className="text-gray-300 hover:text-red-500 ml-3 shrink-0 transition-colors"
-                    aria-label={`Remove ${f.name}`}
-                  >
-                    ✕
-                  </button>
-                </li>
-              ))}
-            </ul>
-          )}
+                  </li>
+                )
+              })}
+            </ol>
+          </section>
 
-          {/* Error */}
-          {error && (
-            <div className="mt-4 rounded-xl bg-red-50 border border-red-200 p-3 text-sm text-red-700">
-              {error}
+          {/* Right: upload card */}
+          <section className="rounded-2xl border border-ink-600 bg-ink-800 p-5 sm:p-6 shadow-page" aria-label="Upload documents">
+            <div
+              role="button"
+              tabIndex={0}
+              aria-label="Add PDF files"
+              onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') inputRef.current?.click() }}
+              onDragOver={(e) => { e.preventDefault(); setDragOver(true) }}
+              onDragLeave={() => setDragOver(false)}
+              onDrop={(e) => { e.preventDefault(); setDragOver(false); handleFiles(e.dataTransfer.files) }}
+              onClick={() => inputRef.current?.click()}
+              className={`rounded-xl border border-dashed px-6 py-10 text-center cursor-pointer transition-colors ${
+                dragOver ? 'border-signal bg-signal/10' : 'border-ink-500 hover:border-ink-400 bg-ink-900/40'
+              }`}
+            >
+              <svg className={`mx-auto mb-4 h-9 w-9 ${dragOver ? 'text-signal' : 'text-ink-400'}`} fill="none" viewBox="0 0 24 24"
+                stroke="currentColor" strokeWidth={1.5} aria-hidden="true">
+                <path strokeLinecap="round" strokeLinejoin="round" d="M12 16V4m0 0-4 4m4-4 4 4M4 16v2a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-2" />
+              </svg>
+              <p className="text-[15px] font-medium text-ink-100">
+                Drop PDFs here or <span className="text-signal">browse</span>
+              </p>
+              <p className="mt-1.5 font-mono text-[12px] text-ink-400">Schedule · Certificate · Statement of Fact · Booklet</p>
+              <input ref={inputRef} type="file" accept=".pdf" multiple className="hidden"
+                onChange={(e) => handleFiles(e.target.files)} />
             </div>
-          )}
 
-          {/* CTA */}
-          <button
-            onClick={handleSubmit}
-            disabled={!files.length || loading}
-            className="mt-6 w-full py-3 px-6 rounded-xl font-semibold text-white transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
-            style={{ backgroundColor: loading ? BRAND.teal : BRAND.blue }}
-          >
-            {loading ? (
-              <span className="flex items-center justify-center gap-2">
-                <svg className="animate-spin h-4 w-4" viewBox="0 0 24 24" fill="none">
-                  <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
-                  <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v8z" />
-                </svg>
-                Extracting — this may take 60 s…
-              </span>
-            ) : (
-              'Extract & Review'
+            {samplePack?.files.length ? (
+              <div className="mt-4 rounded-xl border border-ink-600 bg-ink-900/50 p-4">
+                <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+                  <div>
+                    <p className="text-sm font-medium text-ink-100">No documents to hand?</p>
+                    <p className="mt-0.5 text-[13px] text-ink-300">
+                      Load the synthetic demo pack{samplePack.expected_policy_number ? <> (<span className="font-mono">{samplePack.expected_policy_number}</span>)</> : null}. No real customer data.
+                    </p>
+                  </div>
+                  <button type="button" onClick={handleLoadSamples} disabled={loadingSamples} className="btn-ghost text-sm shrink-0">
+                    {loadingSamples ? <><Spinner /> Loading…</> : 'Load demo pack'}
+                  </button>
+                </div>
+              </div>
+            ) : null}
+
+            {files.length > 0 && (
+              <ul className="mt-4 space-y-2" aria-label="Selected files">
+                {files.map((f) => (
+                  <li key={f.name} className="flex items-center justify-between gap-3 rounded-lg border border-ink-600 bg-ink-900/40 px-3.5 py-2.5">
+                    <div className="flex items-center gap-3 min-w-0">
+                      <span className="shrink-0 rounded font-mono text-[10px] font-medium px-1.5 py-0.5 bg-ink-700 text-ink-300">PDF</span>
+                      <span className="text-sm text-ink-200 truncate">{f.name}</span>
+                    </div>
+                    <button onClick={() => removeFile(f.name)} aria-label={`Remove ${f.name}`}
+                      className="shrink-0 h-8 w-8 grid place-items-center rounded-md text-ink-400 hover:text-ink-100 hover:bg-ink-700">
+                      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" aria-hidden="true"><path d="M6 6l12 12M18 6 6 18" /></svg>
+                    </button>
+                  </li>
+                ))}
+              </ul>
             )}
-          </button>
 
-          {loading && (
-            <p className="text-center text-xs text-gray-400 mt-3">
-              Classifying documents · Masking PII · Calling Groq LLM · Building provenance index
+            {error && (
+              <div role="alert" className="mt-4 rounded-lg border border-state-flag/40 bg-state-flag/10 px-3.5 py-3 text-sm text-[#F2B79A]">
+                {error}
+              </div>
+            )}
+
+            <button onClick={handleSubmit} disabled={!files.length || loading} className="btn-signal w-full mt-5 text-[15px]">
+              {loading ? <><Spinner /> Extracting · usually 30–90 s</> : <>Extract &amp; review{files.length ? ` ${files.length} file${files.length > 1 ? 's' : ''}` : ''}</>}
+            </button>
+
+            <p className="mt-4 text-[12px] leading-relaxed text-ink-400">
+              Public demo. Use synthetic or redacted documents only.
             </p>
-          )}
+          </section>
         </div>
       </main>
 
-      {/* ── Footer ──────────────────────────────────────────────────── */}
-      <footer className="text-center py-4 text-xs text-gray-400 border-t border-gray-200 bg-white">
-        Built on{' '}
-        <a
-          href="https://www.ai-toolstack.com/"
-          target="_blank"
-          rel="noopener noreferrer"
-          className="underline hover:text-gray-600 transition-colors"
-        >
-          AI Tool Stack
-        </a>{' '}
-        · Powered by Groq &amp; Docling
+      <footer className="border-t border-ink-700 px-5 sm:px-8 py-4 flex flex-wrap gap-x-6 gap-y-1 justify-between font-mono text-[12px] text-ink-400">
+        <span>PolicyTrace · a reference system from <a className="text-ink-300 hover:text-signal" href="https://www.ai-toolstack.com/" target="_blank" rel="noopener noreferrer">ai·toolstack</a></span>
+        <span>Docling · Presidio · Groq · Instructor · FastAPI · React</span>
       </footer>
     </div>
   )

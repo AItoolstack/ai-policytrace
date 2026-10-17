@@ -44,14 +44,13 @@ export function SessionPage() {
 
   if (loading) {
     return (
-      <div className="min-h-screen flex items-center justify-center" style={{ backgroundColor: '#f8fafc' }}>
+      <div className="min-h-screen flex items-center justify-center bg-ink grid-bg">
         <div className="text-center space-y-3">
-          <svg className="animate-spin h-8 w-8 mx-auto" viewBox="0 0 24 24" fill="none"
-            style={{ color: '#008080' }}>
+          <svg className="animate-spin h-8 w-8 mx-auto text-signal" viewBox="0 0 24 24" fill="none">
             <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
             <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v8z" />
           </svg>
-          <p className="text-sm text-gray-500">Loading session…</p>
+          <p className="font-mono text-sm text-ink-300">Loading session…</p>
         </div>
       </div>
     )
@@ -59,15 +58,14 @@ export function SessionPage() {
 
   if (error) {
     return (
-      <div className="min-h-screen flex items-center justify-center" style={{ backgroundColor: '#f8fafc' }}>
+      <div className="min-h-screen flex items-center justify-center bg-ink grid-bg">
         <div className="text-center space-y-4 max-w-sm">
-          <p className="text-sm text-red-600 bg-red-50 border border-red-200 rounded-xl px-4 py-3">
+          <p role="alert" className="text-sm text-[#F2B79A] bg-state-flag/10 border border-state-flag/40 rounded-xl px-4 py-3">
             {error}
           </p>
           <button
             onClick={() => navigate('/')}
-            className="text-sm font-medium underline"
-            style={{ color: '#2563EB' }}
+            className="text-sm font-medium text-signal hover:text-signal-hover"
           >
             ← Back to upload
           </button>

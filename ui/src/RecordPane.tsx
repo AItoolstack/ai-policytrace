@@ -32,24 +32,50 @@ export function RecordPane({ sessionId }: Props) {
 
   if (!sessionData) return null
 
+  const conflicts = sessionData.conflicts ?? []
+
   return (
-    <div className="flex flex-col h-full">
+    <div className="flex flex-col h-full bg-paper">
       {/* Header */}
-      <div className="px-5 py-4 border-b flex-shrink-0" style={{ backgroundColor: '#1F2937' }}>
-        <h2 className="text-sm font-semibold text-white">Golden Record</h2>
-        <p className="text-xs mt-0.5" style={{ color: 'rgba(255,255,255,0.5)' }}>
-          Click any field to highlight its source location in the PDF.
-        </p>
+      <div className="px-5 h-[52px] flex items-center justify-between gap-3 border-b border-ink-700 bg-ink-800 flex-shrink-0">
+        <div className="min-w-0">
+          <h2 className="text-[14px] font-semibold text-ink-100 tracking-[-0.01em]">Golden Record</h2>
+        </div>
+        <p className="text-[12px] text-ink-400 truncate">Select a field to see its source in the PDF</p>
       </div>
 
       {/* Scrollable field list */}
-      <div className="flex-1 overflow-y-auto px-4 py-3 space-y-5">
+      <div className="flex-1 overflow-y-auto scroll-paper px-4 sm:px-5 py-5 space-y-7">
+        {conflicts.length > 0 && (
+          <section aria-label="Cross-document conflicts" className="rounded-xl border border-signal/50 bg-signal-tint px-4 py-3.5">
+            <p className="eyebrow text-signal-deep">
+              {conflicts.length} cross-document conflict{conflicts.length > 1 ? 's' : ''} · resolved by authority rules
+            </p>
+            <ul className="mt-2 space-y-2">
+              {conflicts.map((c) => (
+                <li key={c.field} className="text-[13px] text-paper-ink">
+                  <span className="font-mono text-[12px] text-paper-muted">{c.field}</span>
+                  <span className="block mt-0.5">
+                    Winner: <span className="font-semibold capitalize">{c.winner}</span>
+                    {c.schedule_value && c.certificate_value ? (
+                      <span className="text-paper-muted"> · schedule and certificate wording differ</span>
+                    ) : null}
+                  </span>
+                </li>
+              ))}
+            </ul>
+          </section>
+        )}
+
         {fieldsBySection.map(({ section, entries }) => (
           <section key={section}>
-            <h3 className="text-xs font-semibold uppercase tracking-wider mb-2 px-1" style={{ color: '#008080' }}>
-              {SECTION_LABELS[section] ?? section}
-            </h3>
-            <div className="space-y-1">
+            <div className="flex items-baseline justify-between mb-2.5 px-1">
+              <h3 className="eyebrow text-signal-deep">{SECTION_LABELS[section] ?? section}</h3>
+              <span className="font-mono text-[11px] text-paper-muted">
+                {entries.filter((e) => e.provenance).length}/{entries.length} located
+              </span>
+            </div>
+            <div className="space-y-1.5">
               {entries.map((entry) => (
                 <FieldRow
                   key={entry.fieldPath}
@@ -158,7 +184,7 @@ function walkObject(
     } else {
       out.push({
         fieldPath: path,
-        label: formatLabel(key),
+        label: driverPrefix(pathPrefix) + formatLabel(key),
         value: String(val),
         section: pathPrefix.split('.')[0],
         provenance: provenanceMap[path],
@@ -167,8 +193,27 @@ function walkObject(
   }
 }
 
+const LABELS: Record<string, string> = {
+  vrm: 'Registration (VRM)',
+  dob: 'Date of Birth',
+  license_type: 'Licence Type',
+  is_main_driver: 'Main Driver',
+  has_security_device: 'Security Device',
+  overnight_postcode: 'Overnight Postcode',
+  standard_compulsory: 'Compulsory Excess',
+  total_accidental_damage: 'Accidental Damage Excess',
+  own_repairer_additional_excess: 'Own Repairer Excess',
+  years: 'NCD Years',
+  protected: 'NCD Protected',
+}
+
 function formatLabel(key: string): string {
-  return key
+  return LABELS[key] ?? key
     .replace(/_/g, ' ')
     .replace(/\b\w/g, (c) => c.toUpperCase())
+}
+
+function driverPrefix(pathPrefix: string): string {
+  const m = pathPrefix.match(/^driver_details\[(\d+)\]$/)
+  return m ? `Driver ${Number(m[1]) + 1} · ` : ''
 }

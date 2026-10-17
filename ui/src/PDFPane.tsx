@@ -36,10 +36,10 @@ export function PDFPane({ sessionId }: Props) {
     const el = containerRef.current
     if (!el) return
     const obs = new ResizeObserver(([entry]) => {
-      setContainerWidth(Math.floor(entry.contentRect.width) - 24)
+      setContainerWidth(Math.floor(entry.contentRect.width) - 48)
     })
     obs.observe(el)
-    setContainerWidth(Math.floor(el.clientWidth) - 24)
+    setContainerWidth(Math.floor(el.clientWidth) - 48)
     return () => obs.disconnect()
   }, [])
 
@@ -100,28 +100,32 @@ export function PDFPane({ sessionId }: Props) {
   return (
     <div className="flex flex-col h-full">
       {/* PDF file selector */}
-      {pdfFiles.length > 1 && (
-        <div className="flex flex-wrap gap-2 p-3 border-b flex-shrink-0" style={{ backgroundColor: '#1F2937' }}>
-          {pdfFiles.map((f) => (
+      <div className="flex items-center gap-1 px-3 h-[52px] border-b border-ink-700 bg-ink-800 flex-shrink-0 overflow-x-auto scroll-ink" role="tablist" aria-label="Source documents">
+        {pdfFiles.map((f) => {
+          const on = activePdfFile === f
+          const count = (sessionData?.provenance ?? []).filter((p) => p.source_filename === f).length
+          return (
             <button
               key={f}
+              role="tab"
+              aria-selected={on}
               onClick={() => setActivePdf(f)}
-              className="px-3 py-1 rounded text-xs font-medium transition-colors"
-              style={activePdfFile === f
-                ? { backgroundColor: '#008080', color: '#ffffff' }
-                : { backgroundColor: 'rgba(255,255,255,0.08)', border: '1px solid rgba(255,255,255,0.15)', color: 'rgba(255,255,255,0.7)' }
-              }
+              className={`relative shrink-0 inline-flex items-center gap-2 h-9 px-3 rounded-md text-[13px] transition-colors ${
+                on ? 'bg-ink-700 text-ink-100' : 'text-ink-300 hover:text-ink-100 hover:bg-ink-700/60'
+              }`}
             >
-              {f}
+              <span className="truncate max-w-[14rem]">{f.replace(/\.pdf$/i, '').replace(/ - Demo$/i, '')}</span>
+              <span className={`font-mono text-[11px] ${on ? 'text-signal' : 'text-ink-400'}`}>{count}</span>
+              {on && <span className="absolute left-3 right-3 -bottom-[9px] h-[2px] bg-signal rounded-full" aria-hidden="true" />}
             </button>
-          ))}
-        </div>
-      )}
+          )
+        })}
+      </div>
 
       {/* PDF scroll area */}
       <div
         ref={containerRef}
-        className="flex-1 overflow-y-auto pdf-scroll-container bg-gray-200 p-3 space-y-4"
+        className="flex-1 overflow-y-auto pdf-scroll-container scroll-ink grid-bg bg-ink-900 p-4 sm:p-6 space-y-6"
       >
         {pdfUrl ? (
           <Document
@@ -151,8 +155,8 @@ export function PDFPane({ sessionId }: Props) {
                   // Use block + explicit width so the overlay div always matches
                   // the canvas dimensions exactly (inline-block can shrink-wrap)
                   style={{ position: 'relative', width: containerWidth }}
-                  className={`rounded shadow-md transition-shadow overflow-hidden ${
-                    hasActive ? 'ring-4 ring-blue-500' : ''
+                  className={`rounded-sm overflow-hidden transition-shadow ${
+                    hasActive ? 'ring-2 ring-signal ring-offset-4 ring-offset-ink-900' : ''
                   }`}
                 >
                   <Page
@@ -181,14 +185,14 @@ export function PDFPane({ sessionId }: Props) {
                             width: `${x1 - x0}%`,
                             height: `${y1 - y0}%`,
                             background: isActive
-                              ? 'rgba(59, 130, 246, 0.35)'   /* blue-500 fill */
-                              : 'rgba(134, 239, 172, 0.35)', /* green-300 fill */
+                              ? 'rgba(224, 169, 70, 0.30)'   /* signal amber */
+                              : 'rgba(224, 169, 70, 0.10)',
                             border: isActive
-                              ? '3px solid rgba(37, 99, 235, 1)'   /* blue-700 solid */
-                              : '2px solid rgba(22, 163, 74, 0.9)', /* green-600 */
+                              ? '2px solid #E0A946'
+                              : '1px solid rgba(183, 121, 31, 0.55)',
                             borderRadius: 3,
                             boxShadow: isActive
-                              ? '0 0 0 2px rgba(147, 197, 253, 0.6)' /* blue glow */
+                              ? '0 0 0 4px rgba(224, 169, 70, 0.22)'
                               : 'none',
                             transition: 'background 0.15s, border 0.15s',
                           }}
@@ -202,7 +206,7 @@ export function PDFPane({ sessionId }: Props) {
             })}
           </Document>
         ) : (
-          <div className="flex items-center justify-center h-full text-gray-400 text-sm">
+          <div className="flex items-center justify-center h-full text-ink-400 text-sm">
             No PDF selected
           </div>
         )}
@@ -213,7 +217,7 @@ export function PDFPane({ sessionId }: Props) {
 
 function LoadingPlaceholder() {
   return (
-    <div className="flex items-center justify-center p-12 text-gray-400 text-sm">
+    <div className="flex items-center justify-center p-12 text-ink-400 text-sm font-mono">
       Loading PDF…
     </div>
   )
@@ -221,7 +225,7 @@ function LoadingPlaceholder() {
 
 function ErrorPlaceholder() {
   return (
-    <div className="flex items-center justify-center p-12 text-red-400 text-sm">
+    <div className="flex items-center justify-center p-12 text-[#F2A35E] text-sm font-mono">
       Failed to load PDF.
     </div>
   )
