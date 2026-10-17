@@ -45,8 +45,11 @@ pipeline:
   session_ttl_days: 30
 
 debug:
-  # Master switch — set to false to skip all debug artifact writing.
-  enabled: true
+  # Master switch. Off by default: debug artifacts include the raw (unmasked)
+  # document text. Turn on only for local debugging with synthetic documents.
+  # When on, the API writes artifacts inside the session folder, so they are
+  # removed with the session (DELETE /api/session/{id} or the TTL cleanup).
+  enabled: false
   # Root folder for debug runs. Each execution creates a timestamped sub-folder.
   output_dir: "./output/debug"
   # Save the raw Markdown produced by docling for each PDF.

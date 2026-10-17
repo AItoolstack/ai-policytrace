@@ -171,11 +171,7 @@ http://localhost:7860
 
 Use a Hugging Face **Docker Space**. Add `GROQ_API_KEY` as a Space Secret and point the Space at this repo.
 
-Deployment notes are in [docs/hugging-face.md](docs/hugging-face.md). Once the live Space is available, add the demo link here:
-
-```text
-https://huggingface.co/spaces/<org>/<space-name>
-```
+Deployment notes are in [docs/hugging-face.md](docs/hugging-face.md). The live demo runs at [huggingface.co/spaces/AItoolstack/AI-PolicyTrace](https://huggingface.co/spaces/AItoolstack/AI-PolicyTrace).
 
 ## Tests
 

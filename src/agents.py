@@ -6,8 +6,8 @@ Architecture
   PDF path
     → docling  (PDF → Markdown)
     → PIIMasker.mask()
-    → InsuranceExtractionAgents.classify_document()  [LLM: llama-3.1-8b-instant]
-    → extract_schedule() | extract_certificate()     [LLM: llama-4-scout-17b]
+    → InsuranceExtractionAgents.classify_document()  [LLM: classifier_model, gpt-oss-20b]
+    → extract_schedule() | extract_certificate()     [LLM: model, gpt-oss-120b]
     → UKMotorGoldenRecord (with source_document provenance)
 """
 from __future__ import annotations
@@ -173,9 +173,9 @@ class InsuranceExtractionAgents:
     """
     Specialist extraction agents for UK Motor Insurance documents.
 
-    Uses two LLM models:
-    - llama-3.1-8b-instant     — fast document type classification
-    - llama-4-scout-17b-16e    — deep structured extraction (Schedule / Certificate)
+    Uses two LLM models, both set in config/settings.yaml:
+    - classifier_model (openai/gpt-oss-20b)  — fast document type classification
+    - model (openai/gpt-oss-120b)            — structured extraction (Schedule / Certificate)
 
     Parameters
     ----------
@@ -206,7 +206,7 @@ class InsuranceExtractionAgents:
 
     def classify_document(self, markdown_text: str) -> str:
         """
-        Use llama-3.1-8b-instant to classify the document type.
+        Use the classifier model to classify the document type.
 
         The LLM is the primary classifier.  If it fails or returns an invalid
         label, the keyword heuristic is used as a fallback.  A discrepancy

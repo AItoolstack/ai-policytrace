@@ -49,8 +49,8 @@ _DEFAULT_ENTITIES = [
 
 
 class LLMSettings(BaseModel):
-    model: str = "llama-3.3-70b-versatile"
-    classifier_model: str = "llama-3.1-8b-instant"
+    model: str = "openai/gpt-oss-120b"
+    classifier_model: str = "openai/gpt-oss-20b"
     max_retries: int = 2
 
 

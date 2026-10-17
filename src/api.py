@@ -49,14 +49,12 @@ logging.basicConfig(level=logging.INFO, format="%(asctime)s [%(levelname)s] %(na
 
 # ---------------------------------------------------------------------------
 # Session storage directory  (project_root/output/sessions/<timestamp>_<uuid>/)
-# Debug artifacts directory  (project_root/output/debug/run_<timestamp>/)
+# Debug artifacts for API runs live inside each session folder (<session>/debug/),
+# so deleting a session also deletes them.
 # ---------------------------------------------------------------------------
 
 _SESSION_DIR = Path(__file__).parent.parent / "output" / "sessions"
 _SESSION_DIR.mkdir(parents=True, exist_ok=True)
-
-_DEBUG_DIR = Path(__file__).parent.parent / "output" / "debug"
-_DEBUG_DIR.mkdir(parents=True, exist_ok=True)
 
 _STATIC_DIR = Path(__file__).parent.parent / "ui" / "dist"
 
@@ -180,10 +178,10 @@ async def process_documents(files: list[UploadFile] = File(...)):
     docs_dir = session_dir / "docs"
     docs_dir.mkdir(parents=True, exist_ok=True)
 
-    # ── Create timestamped debug directory ────────────────────────────────
+    # ── Debug directory (inside the session, so it is deleted with it) ────
     debug_dir: Path | None = None
     if settings.debug.enabled:
-        debug_dir = _DEBUG_DIR / f"run_{run_ts}"
+        debug_dir = session_dir / "debug"
         debug_dir.mkdir(parents=True, exist_ok=True)
         logger.info("Debug artifacts → %s", debug_dir)
 
@@ -324,7 +322,8 @@ async def delete_session(session_id: str):
     Permanently delete a session directory and all its contents.
 
     This removes the uploaded PDFs, the Golden Record JSON, the review state,
-    and all debug artifacts for this session.
+    and any debug artifacts (they are written to <session>/debug/ when
+    settings.debug.enabled is true).
     """
     import shutil
     session_dir = _get_session_dir(session_id)
